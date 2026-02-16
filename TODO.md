@@ -4,7 +4,7 @@
 - [ ] chore => repo hygiene (license optional, codeowners optional, issue templates optional)
 
 - [x] feat => shared protocol + types (events WS)
-- [ ] feat => shared game model (cards metadata, constants, enums)
+- [x] feat => shared game model (cards metadata, constants, enums)
 
 - [ ] feat => server gamestate + rules engine
 - [ ] feat => server action validation + error codes
