@@ -10,6 +10,8 @@ export type CardId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export type RoundCounter = 1 | 2 | 3 | 4 | 5;
 
+export type RoomCode = string;
+
 export interface ZoneState {
   id: ZoneId;
   humans: number; // 0..4
@@ -33,4 +35,15 @@ export interface GameState {
   assets: AssetState;
   players: Record<PlayerId, PlayerAreaState>;
   winner: null | PlayerId;
+}
+
+export interface RoomSlot {
+  playerId: PlayerId;
+  isConnected: boolean;
+  isReady: boolean;
+}
+
+export interface RoomSummary {
+  code: RoomCode;
+  slots: Record<PlayerId, RoomSlot>;
 }
