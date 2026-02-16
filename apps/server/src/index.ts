@@ -28,7 +28,7 @@ wss.on("connection", (ws) => {
       send(ws, {
         type: "ERROR",
         code: "BAD_JSON",
-        message: "Invalid JSON message",
+        message: "Invalid JSON message"
       });
       return;
     }
@@ -42,7 +42,7 @@ wss.on("connection", (ws) => {
     send(ws, {
       type: "ERROR",
       code: "NOT_IMPLEMENTED",
-      message: "Server skeleton only",
+      message: "Server skeleton only"
     });
   });
 });
@@ -61,11 +61,11 @@ function demoState() {
       Z2: { id: "Z2", humans: 4, vampires: 0 },
       Z3: { id: "Z3", humans: 4, vampires: 0 },
       Z4: { id: "Z4", humans: 4, vampires: 0 },
-      Z5: { id: "Z5", humans: 4, vampires: 0 },
+      Z5: { id: "Z5", humans: 4, vampires: 0 }
     },
     players: {
       P1: { playerId: "P1" },
-      P2: { playerId: "P2" },
-    },
+      P2: { playerId: "P2" }
+    }
   } as const;
 }

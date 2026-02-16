@@ -33,14 +33,7 @@ onMounted(() => {
   <main style="font-family: system-ui; padding: 16px">
     <h1>Dracula vs Van Helsing</h1>
     <p>Status => {{ status }}</p>
-    <pre
-      style="
-        background: #111;
-        color: #eee;
-        padding: 12px;
-        border-radius: 8px;
-        overflow: auto;
-      "
+    <pre style="background: #111; color: #eee; padding: 12px; border-radius: 8px; overflow: auto"
       >{{ lastMessage }}
     </pre>
   </main>
