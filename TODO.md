@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] chore => tooling (eslint/prettier) + CI
+- [x] chore => tooling (eslint/prettier) + CI
 - [ ] chore => repo hygiene (license optional, codeowners optional, issue templates optional)
 
 - [ ] feat => shared protocol + types (events WS)
