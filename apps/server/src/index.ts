@@ -1,9 +1,80 @@
-import { WebSocketServer } from "ws";
-import type { ClientToServer, ServerToClient } from "@game/shared";
+import { WebSocketServer, type WebSocket } from "ws";
+import {
+  makeServerEnvelope,
+  isClientToServerMessage,
+  type ClientToServer,
+  type ServerToClient
+} from "@game/shared";
+import type { ErrorCode } from "@game/shared";
 
 const PORT = Number(process.env.PORT ?? 8787);
 
 const wss = new WebSocketServer({ port: PORT });
+
+function send(ws: WebSocket, msg: ServerToClient): void {
+  ws.send(JSON.stringify(msg));
+}
+
+function sendError(
+  ws: WebSocket,
+  refId: string | undefined,
+  code: ErrorCode,
+  message: string
+): void {
+  const payload = refId === undefined ? { code, message } : { code, message, refId };
+
+  send(ws, makeServerEnvelope("ERROR", payload, cryptoId()));
+}
+
+wss.on("connection", (ws) => {
+  // Skeleton => push a demo STATE_SYNC without room handling for now
+  send(
+    ws,
+    makeServerEnvelope(
+      "STATE_SYNC",
+      {
+        code: "DEMO",
+        state: demoState()
+      },
+      cryptoId()
+    )
+  );
+
+  ws.on("message", (data) => {
+    const raw = data.toString();
+    const parsed = safeParse<unknown>(raw);
+
+    if (!parsed) {
+      sendError(ws, undefined, "BAD_JSON", "Invalid JSON message");
+      return;
+    }
+
+    if (!isClientToServerMessage(parsed)) {
+      sendError(ws, undefined, "BAD_MESSAGE", "Message does not match envelope shape");
+      return;
+    }
+
+    const msg = parsed as ClientToServer;
+
+    if (msg.type === "PING") {
+      send(
+        ws,
+        makeServerEnvelope(
+          "PONG",
+          {
+            t: msg.payload.t
+          },
+          cryptoId()
+        )
+      );
+      return;
+    }
+
+    sendError(ws, msg.id, "NOT_IMPLEMENTED", "Server skeleton only");
+  });
+});
+
+console.log(`WS server listening => ws://localhost:${PORT}`);
 
 function safeParse<T>(raw: string): T | null {
   try {
@@ -13,41 +84,9 @@ function safeParse<T>(raw: string): T | null {
   }
 }
 
-function send(ws: import("ws").WebSocket, msg: ServerToClient): void {
-  ws.send(JSON.stringify(msg));
+function cryptoId(): string {
+  return crypto.randomUUID();
 }
-
-wss.on("connection", (ws) => {
-  send(ws, { type: "STATE_SYNC", state: demoState() });
-
-  ws.on("message", (data) => {
-    const raw = data.toString();
-    const msg = safeParse<ClientToServer>(raw);
-
-    if (!msg) {
-      send(ws, {
-        type: "ERROR",
-        code: "BAD_JSON",
-        message: "Invalid JSON message"
-      });
-      return;
-    }
-
-    if (msg.type === "PING") {
-      send(ws, { type: "PONG", t: msg.t });
-      return;
-    }
-
-    // Placeholder => real room/join/action will come in later steps
-    send(ws, {
-      type: "ERROR",
-      code: "NOT_IMPLEMENTED",
-      message: "Server skeleton only"
-    });
-  });
-});
-
-console.log(`WS server listening => ws://localhost:${PORT}`);
 
 function demoState() {
   return {

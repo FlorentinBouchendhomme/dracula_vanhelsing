@@ -11,7 +11,14 @@ onMounted(() => {
 
   ws.onopen = () => {
     status.value = "connected";
-    ws.send(JSON.stringify({ type: "PING", t: Date.now() }));
+    ws.send(
+      JSON.stringify({
+        type: "PING",
+        id: globalThis.crypto.randomUUID(),
+        ts: Date.now(),
+        payload: { t: Date.now() }
+      })
+    );
   };
 
   ws.onmessage = (event) => {
