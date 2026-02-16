@@ -1,4 +1,4 @@
-import type { CardInstance, PlayerId, PlayerLayout, ZoneId, ZoneState } from "./types";
+import type { CardInstance, GameState, PlayerId, PlayerLayout, ZoneId, ZoneState } from "./types";
 import { GAME_LIMITS, INITIAL_ASSETS, ZONE_IDS } from "./constants";
 
 function makeZone(id: ZoneId): ZoneState {
@@ -6,7 +6,6 @@ function makeZone(id: ZoneId): ZoneState {
 }
 
 function makePlaceholderCard(playerId: PlayerId, zoneId: ZoneId): CardInstance {
-  // Placeholder mapping => will be replaced by real setup rules
   const colors = ["GREEN", "YELLOW", "RED", "BLUE"] as const;
   const ids = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
@@ -26,7 +25,7 @@ function makePlayerLayout(playerId: PlayerId): PlayerLayout {
   );
 }
 
-export function createInitialGameState() {
+export function createInitialGameState(): GameState {
   const zones = ZONE_IDS.reduce(
     (acc, id) => {
       acc[id] = makeZone(id);
@@ -35,9 +34,9 @@ export function createInitialGameState() {
     {} as Record<ZoneId, ZoneState>
   );
 
-  const players = {
-    P1: { playerId: "P1" as const },
-    P2: { playerId: "P2" as const }
+  const players: GameState["players"] = {
+    P1: { playerId: "P1" },
+    P2: { playerId: "P2" }
   };
 
   return {
@@ -47,20 +46,16 @@ export function createInitialGameState() {
     zones,
     assets: { ...INITIAL_ASSETS },
     players,
-
     layouts: {
       P1: makePlayerLayout("P1"),
       P2: makePlayerLayout("P2")
     },
-
     deck: {
       draw: [],
       discard: []
     },
-
     activePlayer: "P1",
     roundEnded: false,
-
     winner: null
   };
 }

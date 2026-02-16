@@ -1,0 +1,7 @@
+import type { PlayerId, ZoneId } from "@game/shared";
+
+export type ServerAction =
+  | { kind: "END_ROUND" }
+  | { kind: "DAMAGE_DRACULA"; amount: number }
+  | { kind: "TRANSFORM_IN_ZONE"; zoneId: ZoneId; amount: number } // amount => humans -> vampires
+  | { kind: "SET_ACTIVE_PLAYER"; playerId: PlayerId };

@@ -6,7 +6,7 @@
 - [x] feat => shared protocol + types (events WS)
 - [x] feat => shared game model (cards metadata, constants, enums)
 
-- [ ] feat => server gamestate + rules engine
+- [x] feat => server gamestate + rules engine
 - [ ] feat => server action validation + error codes
 - [ ] feat => server rooms + join + resync refresh
 - [ ] feat => server persistence (in-memory only) + state snapshots for reconnect
