@@ -7,6 +7,10 @@ const lastMessage = ref<string>("");
 
 onMounted(() => {
   const ws = new WebSocket("ws://localhost:8787");
+
+  // Expose for manual testing in browser console
+  (window as unknown as { __ws?: WebSocket }).__ws = ws;
+
   status.value = "connecting";
 
   ws.onopen = () => {

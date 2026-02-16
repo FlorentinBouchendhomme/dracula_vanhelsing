@@ -7,7 +7,7 @@
 - [x] feat => shared game model (cards metadata, constants, enums)
 
 - [x] feat => server gamestate + rules engine
-- [ ] feat => server action validation + error codes
+- [x] feat => server action validation + error codes
 - [ ] feat => server rooms + join + resync refresh
 - [ ] feat => server persistence (in-memory only) + state snapshots for reconnect
 
