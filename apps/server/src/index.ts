@@ -93,7 +93,6 @@ function demoState() {
     version: 1,
     round: 1,
     draculaHp: 12,
-    winner: null,
     assets: { tokens: 3, trumpToken: true },
     zones: {
       Z1: { id: "Z1", humans: 4, vampires: 0 },
@@ -105,6 +104,33 @@ function demoState() {
     players: {
       P1: { playerId: "P1" },
       P2: { playerId: "P2" }
-    }
+    },
+
+    layouts: {
+      P1: {
+        Z1: { color: "GREEN", id: 1 },
+        Z2: { color: "GREEN", id: 2 },
+        Z3: { color: "GREEN", id: 3 },
+        Z4: { color: "GREEN", id: 4 },
+        Z5: { color: "GREEN", id: 5 }
+      },
+      P2: {
+        Z1: { color: "RED", id: 1 },
+        Z2: { color: "RED", id: 2 },
+        Z3: { color: "RED", id: 3 },
+        Z4: { color: "RED", id: 4 },
+        Z5: { color: "RED", id: 5 }
+      }
+    },
+
+    deck: {
+      draw: [],
+      discard: []
+    },
+
+    activePlayer: "P1",
+    roundEnded: false,
+
+    winner: null
   } as const;
 }
