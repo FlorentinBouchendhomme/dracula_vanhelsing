@@ -7,7 +7,9 @@
     "dev:client": "pnpm --filter @game/client dev",
     "dev:server": "pnpm --filter @game/server dev",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm typecheck:ts && pnpm typecheck:vue",
+    "typecheck:ts": "tsc -b",
+    "typecheck:vue": "pnpm --filter @game/client typecheck",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "lint": "eslint .",
@@ -23,5 +25,10 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.55.0",
     "vue-eslint-parser": "^10.4.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.9.3"
+    }
   }
 }

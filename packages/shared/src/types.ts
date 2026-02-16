@@ -8,6 +8,11 @@ export type CardColor = "GREEN" | "RED" | "BLUE" | "YELLOW";
 
 export type CardId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
+export type CardInstance = Readonly<{
+  id: CardId;
+  color: CardColor;
+}>;
+
 export type RoundCounter = 1 | 2 | 3 | 4 | 5;
 
 export type RoomCode = string;
@@ -22,6 +27,13 @@ export interface PlayerAreaState {
   playerId: PlayerId;
 }
 
+export type PlayerLayout = Record<ZoneId, CardInstance>;
+
+export type DeckState = Readonly<{
+  draw: readonly CardInstance[];
+  discard: readonly CardInstance[];
+}>;
+
 export interface AssetState {
   tokens: number; // 0..3
   trumpToken: boolean;
@@ -30,10 +42,19 @@ export interface AssetState {
 export interface GameState {
   version: number;
   round: RoundCounter;
-  draculaHp: number; // target => 0 for Van Helsing win
+
+  draculaHp: number;
   zones: Record<ZoneId, ZoneState>;
   assets: AssetState;
+
   players: Record<PlayerId, PlayerAreaState>;
+
+  layouts: Record<PlayerId, PlayerLayout>;
+  deck: DeckState;
+
+  activePlayer: PlayerId;
+  roundEnded: boolean;
+
   winner: null | PlayerId;
 }
 
