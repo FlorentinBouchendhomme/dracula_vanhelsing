@@ -3,7 +3,7 @@
 - [x] chore => tooling (eslint/prettier) + CI
 - [ ] chore => repo hygiene (license optional, codeowners optional, issue templates optional)
 
-- [ ] feat => shared protocol + types (events WS)
+- [x] feat => shared protocol + types (events WS)
 - [ ] feat => shared game model (cards metadata, constants, enums)
 
 - [ ] feat => server gamestate + rules engine
