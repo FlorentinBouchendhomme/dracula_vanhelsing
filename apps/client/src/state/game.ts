@@ -9,8 +9,15 @@ import type {
   ServerToClient
 } from "@game/shared";
 import { WsClient } from "../net/ws";
+import { makeId } from "../utils/uuid";
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
+
+type Notification = {
+  id: string;
+  level: "error" | "info";
+  message: string;
+};
 
 const STORAGE_KEY = "dvsh_playerKey";
 
@@ -25,22 +32,24 @@ export const useGameStore = defineStore("game", {
     room: null as RoomSummary | null,
     state: null as GameState | null,
 
-    lastError: null as { code: string; message: string } | null,
+    notifications: [] as Notification[],
     lastJoinAttemptCode: null as string | null,
 
     _ws: null as WsClient | null
   }),
 
   actions: {
-    initWs(url = "ws://localhost:8787"): void {
+    initWs(url?: string): void {
       if (this._ws) return;
 
       this.playerKey = localStorage.getItem(STORAGE_KEY);
 
-      this._ws = new WsClient(url, {
+      const wsUrl = url ?? `ws://${window.location.hostname}:8787`;
+
+      this._ws = new WsClient(wsUrl, {
         onOpen: () => {
           this.status = "connected";
-          const msg = makeClientEnvelope("PING", { t: Date.now() }, crypto.randomUUID());
+          const msg = makeClientEnvelope("PING", { t: Date.now() }, makeId());
           this._ws?.send(msg);
         },
         onClose: () => {
@@ -56,12 +65,22 @@ export const useGameStore = defineStore("game", {
       this._ws.connect();
     },
 
+    pushNotification(level: "error" | "info", message: string): void {
+      const id = makeId();
+      this.notifications.push({ id, level, message });
+
+      // Auto remove after 4 seconds
+      setTimeout(() => {
+        this.notifications = this.notifications.filter((n) => n.id !== id);
+      }, 4000);
+    },
+
     send(msg: ClientToServer): void {
       this._ws?.send(msg);
     },
 
     createRoom(name: string): void {
-      const msg = makeClientEnvelope("ROOM_CREATE", { name }, crypto.randomUUID());
+      const msg = makeClientEnvelope("ROOM_CREATE", { name }, makeId());
       this.send(msg);
     },
 
@@ -72,30 +91,25 @@ export const useGameStore = defineStore("game", {
       const msg = makeClientEnvelope(
         "ROOM_JOIN",
         { code: normalized, playerKey: this.playerKey },
-        crypto.randomUUID()
+        makeId()
       );
       this.send(msg);
     },
 
     leaveRoom(): void {
       if (!this.roomCode) return;
-      const msg = makeClientEnvelope("ROOM_LEAVE", { code: this.roomCode }, crypto.randomUUID());
+      const msg = makeClientEnvelope("ROOM_LEAVE", { code: this.roomCode }, makeId());
       this.send(msg);
 
       this.roomCode = null;
       this.playerId = null;
       this.room = null;
       this.state = null;
-      this.lastError = null;
     },
 
     setReady(isReady: boolean): void {
       if (!this.roomCode) return;
-      const msg = makeClientEnvelope(
-        "PLAYER_READY",
-        { code: this.roomCode, isReady },
-        crypto.randomUUID()
-      );
+      const msg = makeClientEnvelope("PLAYER_READY", { code: this.roomCode, isReady }, makeId());
       this.send(msg);
     },
 
@@ -103,6 +117,8 @@ export const useGameStore = defineStore("game", {
       switch (msg.type) {
         case "ROOM_CREATED": {
           this.roomCode = msg.payload.code;
+          this.pushNotification("info", `Room créé ${msg.payload.code}`);
+
           return;
         }
 
@@ -111,6 +127,7 @@ export const useGameStore = defineStore("game", {
           this.playerId = msg.payload.playerId;
           this.playerKey = msg.payload.playerKey;
           localStorage.setItem(STORAGE_KEY, msg.payload.playerKey);
+          this.pushNotification("info", `Joined room ${msg.payload.code}`);
           return;
         }
 
@@ -126,7 +143,7 @@ export const useGameStore = defineStore("game", {
         }
 
         case "ERROR": {
-          this.lastError = { code: msg.payload.code, message: msg.payload.message };
+          this.pushNotification("error", `${msg.payload.code} - ${msg.payload.message}`);
 
           if (msg.payload.code === "INVALID_PLAYER_KEY" && this.lastJoinAttemptCode) {
             // Clear stale key (server restart or wrong room)
@@ -136,7 +153,7 @@ export const useGameStore = defineStore("game", {
             const retry = makeClientEnvelope(
               "ROOM_JOIN",
               { code: this.lastJoinAttemptCode, playerKey: null },
-              crypto.randomUUID()
+              makeId()
             );
             this.send(retry);
           }

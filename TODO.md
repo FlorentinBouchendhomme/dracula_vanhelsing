@@ -12,7 +12,7 @@
 - [x] feat => server persistence (in-memory only) + state snapshots for reconnect
 
 - [x] feat => client ws layer + store + lobby
-- [ ] feat => client error handling + notifications
+- [x] feat => client error handling + notifications
 - [ ] feat => board UI (common + player areas)
 - [ ] feat => cards UI + rules
 - [ ] feat => action UX (select target, confirm, cancel, disabled states)
