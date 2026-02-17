@@ -9,7 +9,7 @@
 - [x] feat => server gamestate + rules engine
 - [x] feat => server action validation + error codes
 - [x] feat => server rooms + join + resync refresh
-- [ ] feat => server persistence (in-memory only) + state snapshots for reconnect
+- [x] feat => server persistence (in-memory only) + state snapshots for reconnect
 
 - [ ] feat => client ws layer + store + lobby
 - [ ] feat => client error handling + notifications
