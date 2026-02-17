@@ -2,7 +2,7 @@ import { WebSocketServer } from "ws";
 import type { WebSocket } from "ws";
 
 import { isClientToServerMessage, makeServerEnvelope } from "@game/shared";
-import type { ClientToServer, ServerToClient } from "@game/shared";
+import type { ClientToServer, GameState, ServerToClient } from "@game/shared";
 
 import { applyServerAction } from "./game/engine";
 import { mapUnknownAction } from "./game/mapper";
@@ -20,12 +20,8 @@ function send(ws: WebSocket, msg: ServerToClient): void {
   ws.send(JSON.stringify(msg));
 }
 
-function syncOne(ws: WebSocket, code: string, state: any): void {
+function syncOne(ws: WebSocket, code: string, state: GameState): void {
   send(ws, makeServerEnvelope("STATE_SYNC", { code, state }, crypto.randomUUID()));
-}
-
-function roomStateOne(ws: WebSocket, roomSummary: any): void {
-  send(ws, makeServerEnvelope("ROOM_STATE", { room: roomSummary }, crypto.randomUUID()));
 }
 
 wss.on("connection", (ws) => {
@@ -69,6 +65,10 @@ wss.on("connection", (ws) => {
 
       send(ws, makeServerEnvelope("ROOM_CREATED", { code: room.code }, crypto.randomUUID()));
       // Client will call ROOM_JOIN next
+      setInterval(() => {
+        const removed = rooms.cleanupExpiredRooms();
+        if (removed > 0) console.log(`rooms: cleanup removed => ${removed}`);
+      }, 60_000);
       return;
     }
 
@@ -194,4 +194,3 @@ wss.on("connection", (ws) => {
     send(ws, makeError("NOT_IMPLEMENTED", "Message not implemented", refId));
   });
 });
-
