@@ -11,7 +11,7 @@
 - [x] feat => server rooms + join + resync refresh
 - [x] feat => server persistence (in-memory only) + state snapshots for reconnect
 
-- [ ] feat => client ws layer + store + lobby
+- [x] feat => client ws layer + store + lobby
 - [ ] feat => client error handling + notifications
 - [ ] feat => board UI (common + player areas)
 - [ ] feat => cards UI + rules
