@@ -25,6 +25,10 @@ export interface ZoneState {
   vampires: number; // 0..4
 }
 
+export type Role = "DRACULA" | "VAN_HELSING";
+
+export type RolesByPlayer = Record<PlayerId, Role>;
+
 export interface PlayerAreaState {
   playerId: PlayerId;
 }
@@ -51,6 +55,8 @@ export interface AssetState {
   order: TrumpOrder;
 }
 
+export type RoundEndReason = "CARD_8" | "DECK_EMPTY" | null;
+
 export interface GameState {
   version: number;
   round: RoundCounter;
@@ -66,6 +72,10 @@ export interface GameState {
 
   activePlayer: PlayerId;
   roundEnded: boolean;
+  roundEndReason: RoundEndReason;
+  skipNextTurn: boolean; // used by card 8
+
+  roles: RolesByPlayer;
 
   winner: null | PlayerId;
 }
