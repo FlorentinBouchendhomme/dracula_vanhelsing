@@ -1,30 +1,30 @@
 <script setup lang="ts">
 import type { GameState, PlayerId, ZoneId } from "@game/shared";
 import { ZONE_IDS, getCardMeta } from "@game/shared";
+import GameCard from "../cards/GameCard.vue";
 
-defineProps<{
+const props = defineProps<{
   title: string;
   playerId: PlayerId;
   state: GameState;
-  currentPlayerId: PlayerId | null;
+  currentPlayerId: PlayerId | null; // viewer
 }>();
 
-function displayCard(
-  state: GameState,
-  playerId: PlayerId,
-  zoneId: ZoneId,
-  current: PlayerId | null
-): string {
-  const entry = state.layouts[playerId][zoneId];
+function isHidden(zoneId: ZoneId): boolean {
+  const entry = props.state.layouts[props.playerId][zoneId];
+  const isOwner = props.currentPlayerId === props.playerId;
+  if (isOwner) return false;
+  return entry.visibility === "HIDDEN";
+}
 
-  const isOwner = current === playerId;
-
-  if (!isOwner && entry.visibility === "HIDDEN") {
-    return "Hidden card";
-  }
-
+function cardInfo(zoneId: ZoneId) {
+  const entry = props.state.layouts[props.playerId][zoneId];
   const meta = getCardMeta(entry.card);
-  return `${entry.card.color} ${entry.card.id} => ${meta.description}`;
+  return {
+    color: entry.card.color,
+    id: entry.card.id,
+    description: meta.description
+  };
 }
 </script>
 
@@ -37,16 +37,20 @@ function displayCard(
 
     <hr style="border: none; border-top: 1px solid #eee; margin: 12px 0" />
 
-    <div style="display: grid; gap: 8px">
+    <div style="display: grid; gap: 10px">
       <div
         v-for="z in ZONE_IDS"
         :key="z"
-        style="border: 1px solid #eee; border-radius: 8px; padding: 8px"
+        style="display: grid; gap: 8px; grid-template-columns: 90px 1fr; align-items: start"
       >
-        <div style="font-weight: 600">Zone {{ z }}</div>
-        <div style="opacity: 0.8; margin-top: 4px">
-          {{ displayCard(state, playerId, z, currentPlayerId) }}
-        </div>
+        <div style="font-weight: 700; padding-top: 6px">Zone {{ z }}</div>
+
+        <GameCard
+          :color="cardInfo(z).color"
+          :id="cardInfo(z).id"
+          :description="cardInfo(z).description"
+          :is-hidden="isHidden(z)"
+        />
       </div>
     </div>
   </section>

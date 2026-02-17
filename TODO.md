@@ -14,7 +14,7 @@
 - [x] feat => client ws layer + store + lobby
 - [x] feat => client error handling + notifications
 - [x] feat => board UI (common + player areas)
-- [ ] feat => cards UI + rules
+- [x] feat => cards UI + rules
 - [ ] feat => action UX (select target, confirm, cancel, disabled states)
 
 - [ ] test => rules scenarios
