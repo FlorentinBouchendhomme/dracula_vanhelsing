@@ -1,34 +1,74 @@
-import type { CardInstance, GameState, PlayerId, PlayerLayout, ZoneId, ZoneState } from "./types";
-import { GAME_LIMITS, INITIAL_ASSETS, ZONE_IDS } from "./constants";
+import type {
+  CardInstance,
+  GameState,
+  PlayerId,
+  PlayerLayout,
+  ZoneId,
+  ZoneState,
+  TrumpOrder
+} from "./types";
+import { CARD_COLORS, CARD_IDS, GAME_LIMITS, ZONE_IDS } from "./constants";
+
+function shuffle<T>(arr: readonly T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = copy[i];
+    copy[i] = copy[j] as T;
+    copy[j] = tmp as T;
+  }
+  return copy;
+}
+
+function createInitialTrumpOrder(): TrumpOrder {
+  const shuffled = shuffle(CARD_COLORS);
+  const [c0, c1, c2, c3] = shuffled;
+  if (!c0 || !c1 || !c2 || !c3) return { nonTrumps: ["GREEN", "YELLOW", "RED"], trump: "BLUE" };
+  return { nonTrumps: [c0, c1, c2], trump: c3 };
+}
 
 function makeZone(id: ZoneId): ZoneState {
   return { id, humans: GAME_LIMITS.tokensPerZone, vampires: 0 };
 }
 
-function makePlaceholderCard(playerId: PlayerId, zoneId: ZoneId): CardInstance {
-  const colors = ["GREEN", "YELLOW", "RED", "BLUE"] as const;
-  const ids = [1, 2, 3, 4, 5, 6, 7, 8] as const;
-
-  const color = colors[playerId === "P1" ? 0 : 1] ?? "GREEN";
-  const id = ids[ZONE_IDS.indexOf(zoneId)] ?? 1;
-
-  return { color, id };
+function makeFullDeck(): CardInstance[] {
+  return CARD_COLORS.flatMap((color) => CARD_IDS.map((id) => ({ color, id })));
 }
 
-function makePlayerLayout(playerId: PlayerId): PlayerLayout {
-  return ZONE_IDS.reduce(
-    (acc, zoneId) => {
-      acc[zoneId] = makePlaceholderCard(playerId, zoneId);
-      return acc;
-    },
-    {} as Record<ZoneId, CardInstance>
-  );
+function makeEmptyLayout(): PlayerLayout {
+  return ZONE_IDS.reduce((acc, zoneId) => {
+    acc[zoneId] = { card: { color: "GREEN", id: 1 }, visibility: "HIDDEN" };
+    return acc;
+  }, {} as PlayerLayout);
+}
+
+function dealCard(draw: CardInstance[]): CardInstance {
+  const card = draw.shift();
+  if (!card) {
+    // English comment => deck underflow should never happen with 32 cards
+    throw new Error("Deck underflow while dealing");
+  }
+  return card;
+}
+
+function dealInterleavedByZone(draw: CardInstance[]): Record<PlayerId, PlayerLayout> {
+  const layouts: Record<PlayerId, PlayerLayout> = {
+    P1: makeEmptyLayout(),
+    P2: makeEmptyLayout()
+  };
+
+  for (const zoneId of ZONE_IDS) {
+    layouts.P1[zoneId] = { card: dealCard(draw), visibility: "HIDDEN" };
+    layouts.P2[zoneId] = { card: dealCard(draw), visibility: "HIDDEN" };
+  }
+
+  return layouts;
 }
 
 export function createInitialGameState(): GameState {
   const zones = ZONE_IDS.reduce(
-    (acc, id) => {
-      acc[id] = makeZone(id);
+    (acc, zoneId) => {
+      acc[zoneId] = makeZone(zoneId);
       return acc;
     },
     {} as Record<ZoneId, ZoneState>
@@ -39,23 +79,43 @@ export function createInitialGameState(): GameState {
     P2: { playerId: "P2" }
   };
 
+  const draw = shuffle(makeFullDeck());
+  const layouts = dealInterleavedByZone(draw);
+
   return {
     version: 1,
     round: 1,
     draculaHp: GAME_LIMITS.draculaHpInitial,
+
+    roles: { P1: "DRACULA", P2: "VAN_HELSING" },
+
     zones,
-    assets: { ...INITIAL_ASSETS },
+    assets: { order: createInitialTrumpOrder() },
     players,
-    layouts: {
-      P1: makePlayerLayout("P1"),
-      P2: makePlayerLayout("P2")
-    },
-    deck: {
-      draw: [],
-      discard: []
-    },
+    layouts,
+    deck: { draw, discard: [] },
+
     activePlayer: "P1",
     roundEnded: false,
+    roundEndReason: null,
+    skipNextTurn: false,
     winner: null
+  };
+}
+
+export function startNewRound(prev: GameState): GameState {
+  const draw = shuffle(makeFullDeck());
+  const layouts = dealInterleavedByZone(draw);
+
+  return {
+    ...prev,
+    version: prev.version + 1,
+    layouts,
+    deck: { draw, discard: [] },
+    assets: { order: createInitialTrumpOrder() },
+    roundEnded: false,
+    roundEndReason: null,
+    skipNextTurn: false,
+    activePlayer: "P1"
   };
 }

@@ -13,6 +13,8 @@ export type CardInstance = Readonly<{
   color: CardColor;
 }>;
 
+export type CardVisibility = "HIDDEN" | "VISIBLE";
+
 export type RoundCounter = 1 | 2 | 3 | 4 | 5;
 
 export type RoomCode = string;
@@ -23,21 +25,37 @@ export interface ZoneState {
   vampires: number; // 0..4
 }
 
+export type Role = "DRACULA" | "VAN_HELSING";
+
+export type RolesByPlayer = Record<PlayerId, Role>;
+
 export interface PlayerAreaState {
   playerId: PlayerId;
 }
 
-export type PlayerLayout = Record<ZoneId, CardInstance>;
+export type PlayerLayout = Record<
+  ZoneId,
+  {
+    card: CardInstance;
+    visibility: CardVisibility;
+  }
+>;
 
 export type DeckState = Readonly<{
   draw: readonly CardInstance[];
   discard: readonly CardInstance[];
 }>;
 
+export type TrumpOrder = {
+  nonTrumps: [CardColor, CardColor, CardColor];
+  trump: CardColor;
+};
+
 export interface AssetState {
-  tokens: number; // 0..3
-  trumpToken: boolean;
+  order: TrumpOrder;
 }
+
+export type RoundEndReason = "CARD_8" | "DECK_EMPTY" | null;
 
 export interface GameState {
   version: number;
@@ -54,6 +72,10 @@ export interface GameState {
 
   activePlayer: PlayerId;
   roundEnded: boolean;
+  roundEndReason: RoundEndReason;
+  skipNextTurn: boolean; // used by card 8
+
+  roles: RolesByPlayer;
 
   winner: null | PlayerId;
 }
