@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useGameStore } from "./state/game";
+import NotificationsSystem from "./components/NotificationsSystem.vue";
 
 const game = useGameStore();
 
@@ -46,10 +47,6 @@ const mySlot = computed(() => {
           </button>
         </div>
         <p style="margin: 8px 0 0; opacity: 0.7">Reconnect uses stored playerKey automatically.</p>
-      </div>
-
-      <div v-if="game.lastError" style="padding: 12px; border: 1px solid #f2c; border-radius: 8px">
-        Error => {{ game.lastError.code }} - {{ game.lastError.message }}
       </div>
     </section>
 
@@ -106,10 +103,7 @@ const mySlot = computed(() => {
           >{{ JSON.stringify(game.state, null, 2) }}</pre
         >
       </div>
-
-      <div v-if="game.lastError" style="padding: 12px; border: 1px solid #f2c; border-radius: 8px">
-        Error => {{ game.lastError.code }} - {{ game.lastError.message }}
-      </div>
     </section>
+    <NotificationsSystem />
   </main>
 </template>

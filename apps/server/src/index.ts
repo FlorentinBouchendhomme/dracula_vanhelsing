@@ -12,7 +12,10 @@ import type { SocketSession } from "./net/session";
 import { RoomManager } from "./rooms/manager";
 
 const PORT = Number(process.env.PORT ?? 8787);
-const wss = new WebSocketServer({ port: PORT });
+const wss = new WebSocketServer({
+  host: "0.0.0.0",
+  port: PORT
+});
 
 const rooms = new RoomManager();
 
