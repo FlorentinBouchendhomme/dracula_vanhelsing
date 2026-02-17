@@ -26,6 +26,7 @@ export const useGameStore = defineStore("game", {
     state: null as GameState | null,
 
     lastError: null as { code: string; message: string } | null,
+    lastJoinAttemptCode: null as string | null,
 
     _ws: null as WsClient | null
   }),
@@ -65,9 +66,12 @@ export const useGameStore = defineStore("game", {
     },
 
     joinRoom(code: string): void {
+      const normalized = code.trim().toUpperCase();
+      this.lastJoinAttemptCode = normalized;
+
       const msg = makeClientEnvelope(
         "ROOM_JOIN",
-        { code, playerKey: this.playerKey },
+        { code: normalized, playerKey: this.playerKey },
         crypto.randomUUID()
       );
       this.send(msg);
@@ -123,6 +127,20 @@ export const useGameStore = defineStore("game", {
 
         case "ERROR": {
           this.lastError = { code: msg.payload.code, message: msg.payload.message };
+
+          if (msg.payload.code === "INVALID_PLAYER_KEY" && this.lastJoinAttemptCode) {
+            // Clear stale key (server restart or wrong room)
+            this.playerKey = null;
+            localStorage.removeItem(STORAGE_KEY);
+
+            const retry = makeClientEnvelope(
+              "ROOM_JOIN",
+              { code: this.lastJoinAttemptCode, playerKey: null },
+              crypto.randomUUID()
+            );
+            this.send(retry);
+          }
+
           return;
         }
 
