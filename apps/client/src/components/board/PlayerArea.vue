@@ -6,12 +6,25 @@ defineProps<{
   title: string;
   playerId: PlayerId;
   state: GameState;
+  currentPlayerId: PlayerId | null;
 }>();
 
-function cardLine(state: GameState, playerId: PlayerId, zoneId: ZoneId): string {
-  const card = state.layouts[playerId][zoneId];
-  const meta = getCardMeta(card);
-  return `${card.color} ${card.id} => ${meta.description}`;
+function displayCard(
+  state: GameState,
+  playerId: PlayerId,
+  zoneId: ZoneId,
+  current: PlayerId | null
+): string {
+  const entry = state.layouts[playerId][zoneId];
+
+  const isOwner = current === playerId;
+
+  if (!isOwner && entry.visibility === "HIDDEN") {
+    return "Hidden card";
+  }
+
+  const meta = getCardMeta(entry.card);
+  return `${entry.card.color} ${entry.card.id} => ${meta.description}`;
 }
 </script>
 
@@ -31,7 +44,9 @@ function cardLine(state: GameState, playerId: PlayerId, zoneId: ZoneId): string 
         style="border: 1px solid #eee; border-radius: 8px; padding: 8px"
       >
         <div style="font-weight: 600">Zone {{ z }}</div>
-        <div style="opacity: 0.8; margin-top: 4px">{{ cardLine(state, playerId, z) }}</div>
+        <div style="opacity: 0.8; margin-top: 4px">
+          {{ displayCard(state, playerId, z, currentPlayerId) }}
+        </div>
       </div>
     </div>
   </section>

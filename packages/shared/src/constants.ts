@@ -1,4 +1,4 @@
-import type { AssetState, CardColor, CardId, CardInstance, ZoneId } from "./types";
+import type { CardColor, CardId, CardInstance, ZoneId } from "./types";
 
 export const ZONE_IDS: readonly ZoneId[] = ["Z1", "Z2", "Z3", "Z4", "Z5"] as const;
 
@@ -10,11 +10,6 @@ export const GAME_LIMITS = {
   assetTokensInitial: 3,
   trumpTokenInitial: true
 } as const;
-
-export const INITIAL_ASSETS: AssetState = {
-  tokens: GAME_LIMITS.assetTokensInitial,
-  trumpToken: GAME_LIMITS.trumpTokenInitial
-};
 
 export type CardMeta = Readonly<{
   id: CardId;

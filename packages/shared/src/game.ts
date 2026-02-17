@@ -1,5 +1,24 @@
 import type { CardInstance, GameState, PlayerId, PlayerLayout, ZoneId, ZoneState } from "./types";
-import { GAME_LIMITS, INITIAL_ASSETS, ZONE_IDS } from "./constants";
+import { CARD_COLORS, GAME_LIMITS, ZONE_IDS } from "./constants";
+import type { TrumpOrder } from "./types";
+
+function shuffle<T>(arr: readonly T[]): T[] {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function createInitialTrumpOrder(): TrumpOrder {
+  const shuffled = shuffle(CARD_COLORS);
+  const [c0, c1, c2, c3] = shuffled;
+  if (!c0 || !c1 || !c2 || !c3) {
+    // fallback deterministic order if something goes wrong
+    return { nonTrumps: ["GREEN", "YELLOW", "RED"], trump: "BLUE" };
+  }
+
+  return {
+    nonTrumps: [c0, c1, c2],
+    trump: c3
+  };
+}
 
 function makeZone(id: ZoneId): ZoneState {
   return { id, humans: GAME_LIMITS.tokensPerZone, vampires: 0 };
@@ -16,19 +35,19 @@ function makePlaceholderCard(playerId: PlayerId, zoneId: ZoneId): CardInstance {
 }
 
 function makePlayerLayout(playerId: PlayerId): PlayerLayout {
-  return ZONE_IDS.reduce(
-    (acc, zoneId) => {
-      acc[zoneId] = makePlaceholderCard(playerId, zoneId);
-      return acc;
-    },
-    {} as Record<ZoneId, CardInstance>
-  );
+  return ZONE_IDS.reduce((acc, zoneId) => {
+    acc[zoneId] = {
+      card: makePlaceholderCard(playerId, zoneId),
+      visibility: "HIDDEN"
+    };
+    return acc;
+  }, {} as PlayerLayout);
 }
 
 export function createInitialGameState(): GameState {
   const zones = ZONE_IDS.reduce(
-    (acc, id) => {
-      acc[id] = makeZone(id);
+    (acc, zoneId) => {
+      acc[zoneId] = makeZone(zoneId);
       return acc;
     },
     {} as Record<ZoneId, ZoneState>
@@ -44,7 +63,7 @@ export function createInitialGameState(): GameState {
     round: 1,
     draculaHp: GAME_LIMITS.draculaHpInitial,
     zones,
-    assets: { ...INITIAL_ASSETS },
+    assets: { order: createInitialTrumpOrder() },
     players,
     layouts: {
       P1: makePlayerLayout("P1"),

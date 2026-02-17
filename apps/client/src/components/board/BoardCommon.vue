@@ -24,7 +24,14 @@ function zoneTitle(zoneId: ZoneId): string {
       <div style="display: flex; gap: 16px; flex-wrap: wrap">
         <div><b>Round</b> => {{ state.round }} / 5</div>
         <div><b>Dracula HP</b> => {{ state.draculaHp }}</div>
-        <div><b>Assets</b> => tokens {{ state.assets.tokens }} ; trump {{ state.assets.trumpToken }}</div>
+        <div>
+          <b>Order</b> => {{ state.assets.order.nonTrumps[0] }} >
+          {{ state.assets.order.nonTrumps[1] }} >
+          {{ state.assets.order.nonTrumps[2] }}
+          ; Trump =>
+          {{ state.assets.order.trump }}
+        </div>
+
         <div><b>Active</b> => {{ state.activePlayer }} ; roundEnded {{ state.roundEnded }}</div>
         <div v-if="state.winner"><b>Winner</b> => {{ state.winner }}</div>
       </div>

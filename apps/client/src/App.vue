@@ -99,7 +99,12 @@ const mySlot = computed(() => {
 
       <div v-if="game.state" style="padding: 12px; border: 1px solid #ddd; border-radius: 8px">
         <h2 style="margin: 0 0 8px">State</h2>
-        <BoardView v-if="game.room && game.state" :room="game.room" :state="game.state" />
+        <BoardView
+          v-if="game.room && game.state"
+          :room="game.room"
+          :state="game.state"
+          :viewer-player-id="game.playerId"
+        />
 
         <!-- Debug -->
         <pre

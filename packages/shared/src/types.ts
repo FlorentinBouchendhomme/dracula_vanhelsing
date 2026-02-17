@@ -13,6 +13,8 @@ export type CardInstance = Readonly<{
   color: CardColor;
 }>;
 
+export type CardVisibility = "HIDDEN" | "VISIBLE";
+
 export type RoundCounter = 1 | 2 | 3 | 4 | 5;
 
 export type RoomCode = string;
@@ -27,16 +29,26 @@ export interface PlayerAreaState {
   playerId: PlayerId;
 }
 
-export type PlayerLayout = Record<ZoneId, CardInstance>;
+export type PlayerLayout = Record<
+  ZoneId,
+  {
+    card: CardInstance;
+    visibility: CardVisibility;
+  }
+>;
 
 export type DeckState = Readonly<{
   draw: readonly CardInstance[];
   discard: readonly CardInstance[];
 }>;
 
+export type TrumpOrder = {
+  nonTrumps: [CardColor, CardColor, CardColor];
+  trump: CardColor;
+};
+
 export interface AssetState {
-  tokens: number; // 0..3
-  trumpToken: boolean;
+  order: TrumpOrder;
 }
 
 export interface GameState {
