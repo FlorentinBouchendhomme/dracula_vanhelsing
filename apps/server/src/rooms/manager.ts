@@ -4,6 +4,7 @@ import type { WebSocket } from "ws";
 import type { GameState } from "@game/shared";
 import { makeNewGameState } from "../game/state";
 import type { PlayerKey, Room } from "./types";
+import { redactStateForPlayer } from "../net/redact";
 
 const ROOM_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -185,15 +186,19 @@ export class RoomManager {
   }
 
   broadcastStateSync(room: Room): void {
-    const msg = makeServerEnvelope(
-      "STATE_SYNC",
-      { code: room.code, state: room.state },
-      crypto.randomUUID()
-    );
-
     for (const pid of ["P1", "P2"] as const) {
       const sock = room.socketsByPlayerId[pid];
-      if (sock && sock.readyState === sock.OPEN) send(sock, msg as ServerToClient);
+      if (!sock || sock.readyState !== sock.OPEN) continue;
+
+      const redacted = redactStateForPlayer(room.state, pid);
+
+      const msg = makeServerEnvelope(
+        "STATE_SYNC",
+        { code: room.code, state: redacted },
+        crypto.randomUUID()
+      );
+
+      send(sock, msg as ServerToClient);
     }
   }
 }

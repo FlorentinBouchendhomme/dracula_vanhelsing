@@ -10,6 +10,7 @@ import { validateStateVersion } from "./game/validate";
 import { makeError } from "./net/errors";
 import type { SocketSession } from "./net/session";
 import { RoomManager } from "./rooms/manager";
+import { redactStateForPlayer } from "./net/redact";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const wss = new WebSocketServer({
@@ -23,8 +24,11 @@ function send(ws: WebSocket, msg: ServerToClient): void {
   ws.send(JSON.stringify(msg));
 }
 
-function syncOne(ws: WebSocket, code: string, state: GameState): void {
-  send(ws, makeServerEnvelope("STATE_SYNC", { code, state }, crypto.randomUUID()));
+function syncOne(ws: WebSocket, session: SocketSession, code: string, state: GameState): void {
+  const safe = session.playerId
+    ? redactStateForPlayer(state, session.playerId)
+    : { ...state, drawnCard: null };
+  send(ws, makeServerEnvelope("STATE_SYNC", { code, state: safe }, crypto.randomUUID()));
 }
 
 wss.on("connection", (ws) => {
@@ -177,7 +181,7 @@ wss.on("connection", (ws) => {
       const versionCheck = validateStateVersion(room.state, msg.payload.stateVersion);
       if (versionCheck === "STALE") {
         send(ws, makeError("STALE_STATE", "Client stateVersion is stale", refId));
-        syncOne(ws, room.code, room.state);
+        syncOne(ws, session, room.code, room.state);
         return;
       }
 
