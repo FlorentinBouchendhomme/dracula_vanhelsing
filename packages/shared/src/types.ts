@@ -67,10 +67,19 @@ export type LogEntry = Readonly<{
   text: string;
 }>;
 
-export type EffectPrompt = null | Readonly<{
-  kind: "REVEAL_OWN" | "REVEAL_OPP";
-  actor: PlayerId;
-}>;
+export type EffectPrompt =
+  | null
+  | Readonly<{
+      kind: "REVEAL_OWN" | "REVEAL_OPP";
+      actor: PlayerId;
+    }>
+  | Readonly<{
+      kind: "SWAP_OWN";
+      actor: PlayerId;
+      step: "PICK_A" | "PICK_B";
+      firstZoneId?: ZoneId;
+    }>
+  | Readonly<{ kind: "SWAP_SAME_ZONE"; actor: PlayerId }>;
 
 export interface GameState {
   version: number;

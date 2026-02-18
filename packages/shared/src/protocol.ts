@@ -64,6 +64,16 @@ export type UnknownAction =
       };
     }
   | {
+      kind: "EFFECT_SWAP_OWN";
+      payload:
+        | { actor: PlayerId; step: "PICK_A"; zoneA: ZoneId }
+        | { actor: PlayerId; step: "PICK_B"; zoneB: ZoneId };
+    }
+  | {
+      kind: "EFFECT_SWAP_SAME_ZONE";
+      payload: { actor: PlayerId; zoneId: ZoneId };
+    }
+  | {
       kind: "SET_ACTIVE_PLAYER";
       payload: { playerId: PlayerId };
     };

@@ -2,7 +2,13 @@ import type { GameState, PlayerId, ZoneId } from "@game/shared";
 import { GAME_LIMITS } from "@game/shared";
 import { computeWinner } from "./win";
 import { ServerAction } from "./actions";
-import { validateDrawCard, validateEffectRevealCard, validateResolveChoice } from "./validate";
+import {
+  validateDrawCard,
+  validateEffectRevealCard,
+  validateResolveChoice,
+  validateSwapOwnPick,
+  validateSwapSameZone
+} from "./validate";
 import { applyCardEffect, shouldBeVisibleFromGlobalReveal } from "./cards/effects";
 
 function clampInt(value: number, min: number, max: number): number {
@@ -159,7 +165,7 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
       }
 
       // Otherwise finish the turn normally
-      next = endTurnOrReplay(intermediate, action.playerId)
+      next = endTurnOrReplay(intermediate, action.playerId);
       break;
     }
 
@@ -199,7 +205,107 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
         log: nextLog
       };
 
-      next = endTurnOrReplay(cleared, action.playerId)
+      next = endTurnOrReplay(cleared, action.playerId);
+      break;
+    }
+
+    case "EFFECT_SWAP_OWN": {
+      const err = validateSwapOwnPick(state, action.playerId, action.step, action.zoneId);
+      if (err) return state;
+
+      const prompt = state.effectPrompt;
+      if (!prompt || prompt.kind !== "SWAP_OWN") return state;
+
+      // Step A => store first selection
+      if (action.step === "PICK_A") {
+        next = {
+          ...state,
+          effectPrompt: {
+            kind: "SWAP_OWN",
+            actor: action.playerId,
+            step: "PICK_B",
+            firstZoneId: action.zoneId
+          }
+        };
+        break;
+      }
+
+      // Step B => perform swap (swap full entries => keep visibility)
+      const firstZoneId = prompt.firstZoneId;
+      if (!firstZoneId) return state;
+
+      const a = state.layouts[action.playerId][firstZoneId];
+      const b = state.layouts[action.playerId][action.zoneId];
+
+      const nextLayouts = {
+        ...state.layouts,
+        [action.playerId]: {
+          ...state.layouts[action.playerId],
+          [firstZoneId]: b,
+          [action.zoneId]: a
+        }
+      };
+
+      const nextLog = [
+        ...state.log,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          text: `${action.playerId} swapped own ${firstZoneId} <-> ${action.zoneId}`
+        }
+      ];
+
+      const cleared: GameState = {
+        ...state,
+        layouts: nextLayouts,
+        effectPrompt: null,
+        turnPhase: "DRAW",
+        log: nextLog
+      };
+
+      next = endTurnOrReplay(cleared, action.playerId);
+      break;
+    }
+
+    case "EFFECT_SWAP_SAME_ZONE": {
+      const err = validateSwapSameZone(state, action.playerId, action.zoneId);
+      if (err) return state;
+
+      const opp: PlayerId = action.playerId === "P1" ? "P2" : "P1";
+
+      const a = state.layouts[action.playerId][action.zoneId];
+      const b = state.layouts[opp][action.zoneId];
+
+      const nextLayouts = {
+        ...state.layouts,
+        [action.playerId]: {
+          ...state.layouts[action.playerId],
+          [action.zoneId]: b
+        },
+        [opp]: {
+          ...state.layouts[opp],
+          [action.zoneId]: a
+        }
+      };
+
+      const nextLog = [
+        ...state.log,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          text: `${action.playerId} swapped with ${opp} at ${action.zoneId}`
+        }
+      ];
+
+      const cleared: GameState = {
+        ...state,
+        layouts: nextLayouts,
+        effectPrompt: null,
+        turnPhase: "DRAW",
+        log: nextLog
+      };
+
+      next = endTurnOrReplay(cleared, action.playerId);
       break;
     }
 

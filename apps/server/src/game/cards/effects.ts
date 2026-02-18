@@ -37,9 +37,27 @@ export function applyCardEffect(
       return { ...s1, effectPrompt: { kind: "REVEAL_OPP", actor }, turnPhase: "EFFECT" };
     }
 
+    case 4: {
+      const s1 = pushLog(state, `${actor} played 4 => swap two own cards`);
+      return {
+        ...s1,
+        effectPrompt: { kind: "SWAP_OWN", actor, step: "PICK_A" },
+        turnPhase: "EFFECT"
+      };
+    }
+
     case 5: {
       const s1 = pushLog(state, `${actor} played 5 => replay`);
       return { ...s1, replayPending: true };
+    }
+
+    case 6: {
+      const s1 = pushLog(state, `${actor} played 6 => swap with opponent same zone`);
+      return {
+        ...s1,
+        effectPrompt: { kind: "SWAP_SAME_ZONE", actor },
+        turnPhase: "EFFECT"
+      };
     }
 
     default:

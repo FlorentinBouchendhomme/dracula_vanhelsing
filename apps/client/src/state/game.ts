@@ -231,6 +231,50 @@ export const useGameStore = defineStore("game", {
       this.send(msg);
     },
 
+    swapOwnPick(step: "PICK_A" | "PICK_B", zoneId: import("@game/shared").ZoneId): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
+      if (!this.canAct()) return;
+      if (this.state.turnPhase !== "EFFECT") return;
+
+      const action: UnknownAction =
+        step === "PICK_A"
+          ? {
+              kind: "EFFECT_SWAP_OWN",
+              payload: { actor: this.playerId, step: "PICK_A", zoneA: zoneId }
+            }
+          : {
+              kind: "EFFECT_SWAP_OWN",
+              payload: { actor: this.playerId, step: "PICK_B", zoneB: zoneId }
+            };
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        { code: this.roomCode, stateVersion: this.state.version, action },
+        makeId()
+      );
+
+      this.send(msg);
+    },
+
+    swapSameZone(zoneId: import("@game/shared").ZoneId): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
+      if (!this.canAct()) return;
+      if (this.state.turnPhase !== "EFFECT") return;
+
+      const action: UnknownAction = {
+        kind: "EFFECT_SWAP_SAME_ZONE",
+        payload: { actor: this.playerId, zoneId }
+      };
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        { code: this.roomCode, stateVersion: this.state.version, action },
+        makeId()
+      );
+
+      this.send(msg);
+    },
+
     setReady(isReady: boolean): void {
       if (!this.roomCode) return;
       const msg = makeClientEnvelope("PLAYER_READY", { code: this.roomCode, isReady }, makeId());

@@ -27,15 +27,72 @@ const hiddenZones = computed<ZoneId[]>(() => {
 });
 
 const title = computed(() => {
-  if (!kind.value) return "";
-  if (kind.value === "REVEAL_OWN") return "Choose one of your hidden cards to reveal";
-  return "Choose one opponent hidden card to reveal";
+  const p = game.state?.effectPrompt;
+  if (!p) return "";
+
+  switch (p.kind) {
+    case "REVEAL_OWN":
+      return "Choose one of your hidden cards to reveal";
+
+    case "REVEAL_OPP":
+      return "Choose one opponent hidden card to reveal";
+
+    case "SWAP_OWN":
+      if (p.step === "PICK_A") return "Choose first card to swap (your board)";
+      return `Choose second card to swap (first => ${p.firstZoneId})`;
+
+    case "SWAP_SAME_ZONE":
+      return "Choose zone to swap with opponent";
+
+    default: {
+      const _exhaustive: never = p;
+      return _exhaustive;
+    }
+  }
 });
 
 function onPick(zoneId: ZoneId) {
-  if (!targetPlayerId.value) return;
-  game.revealCard(targetPlayerId.value, zoneId);
+  const p = game.state?.effectPrompt;
+  if (!p) return;
+
+  if (p.kind === "REVEAL_OWN" || p.kind === "REVEAL_OPP") {
+    if (!targetPlayerId.value) return;
+    game.revealCard(targetPlayerId.value, zoneId);
+    return;
+  }
+
+  if (p.kind === "SWAP_OWN") {
+    game.swapOwnPick(p.step, zoneId);
+    return;
+  }
+
+  if (p.kind === "SWAP_SAME_ZONE") {
+    game.swapSameZone(zoneId);
+    return;
+  }
 }
+
+const availableZones = computed<ZoneId[]>(() => {
+  if (!game.state?.effectPrompt || !targetPlayerId.value) return [];
+
+  const p = game.state.effectPrompt;
+
+  if (p.kind === "REVEAL_OWN" || p.kind === "REVEAL_OPP") {
+    const layout = game.state.layouts[targetPlayerId.value];
+    return ZONE_IDS.filter((z) => layout[z].visibility === "HIDDEN");
+  }
+
+  if (p.kind === "SWAP_OWN") {
+    if (p.step === "PICK_A") return [...ZONE_IDS];
+    return ZONE_IDS.filter((z) => z !== p.firstZoneId);
+  }
+
+  if (p.kind === "SWAP_SAME_ZONE") {
+    return [...ZONE_IDS];
+  }
+
+  return [];
+});
 </script>
 
 <template>

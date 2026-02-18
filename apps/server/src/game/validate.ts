@@ -87,3 +87,47 @@ export function validateEffectRevealCard(
 
   return null;
 }
+
+export function validateSwapOwnPick(
+  state: GameState,
+  actor: PlayerId,
+  step: "PICK_A" | "PICK_B",
+  zoneId: ZoneId
+): string | null {
+  const base = canResolveEffectPrompt(state, actor);
+  if (base) return base;
+
+  const prompt = state.effectPrompt;
+  if (!prompt || prompt.kind !== "SWAP_OWN") return "NO_PROMPT";
+
+  if (prompt.step !== step) return "INVALID_STEP";
+
+  const entry = state.layouts[actor]?.[zoneId];
+  if (!entry) return "INVALID_ZONE";
+
+  if (step === "PICK_B") {
+    if (!prompt.firstZoneId) return "INTERNAL_ERROR";
+    if (prompt.firstZoneId === zoneId) return "SAME_ZONE";
+  }
+
+  return null;
+}
+
+export function validateSwapSameZone(
+  state: GameState,
+  actor: PlayerId,
+  zoneId: ZoneId
+): string | null {
+  const base = canResolveEffectPrompt(state, actor);
+  if (base) return base;
+
+  const prompt = state.effectPrompt;
+  if (!prompt || prompt.kind !== "SWAP_SAME_ZONE") return "NO_PROMPT";
+
+  const opp: PlayerId = actor === "P1" ? "P2" : "P1";
+
+  if (!state.layouts[actor]?.[zoneId]) return "INVALID_ZONE";
+  if (!state.layouts[opp]?.[zoneId]) return "INVALID_ZONE";
+
+  return null;
+}

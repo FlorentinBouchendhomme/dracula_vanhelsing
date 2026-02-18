@@ -88,6 +88,35 @@ export function mapUnknownAction(action: UnknownAction): ServerAction | null {
       };
     }
 
+    case "EFFECT_SWAP_OWN": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const actor = payload.actor;
+      const step = (payload as any).step;
+
+      if (!isPlayerId(actor)) return null;
+      if (step !== "PICK_A" && step !== "PICK_B") return null;
+
+      const zoneId = step === "PICK_A" ? (payload as any).zoneA : (payload as any).zoneB;
+      if (!isZoneId(zoneId)) return null;
+
+      return { kind: "EFFECT_SWAP_OWN", playerId: actor, step, zoneId };
+    }
+
+    case "EFFECT_SWAP_SAME_ZONE": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const actor = payload.actor;
+      const zoneId = payload.zoneId;
+
+      if (!isPlayerId(actor)) return null;
+      if (!isZoneId(zoneId)) return null;
+
+      return { kind: "EFFECT_SWAP_SAME_ZONE", playerId: actor, zoneId };
+    }
+
     default:
       return null;
   }
