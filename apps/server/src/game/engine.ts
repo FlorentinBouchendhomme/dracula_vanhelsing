@@ -77,10 +77,9 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
         deck: { ...state.deck, draw: nextDraw },
         drawnCard: card,
         turnPhase: "CHOOSE",
-        log: [
-          ...state.log,
-          { id: crypto.randomUUID(), ts: Date.now(), text: `${action.playerId} drew a card` }
-        ]
+        log: Array.isArray((state as any).log) ? (state as any).log : [],
+        revealed: (state as any).revealed ?? {},
+        effectPrompt: (state as any).effectPrompt ?? null
       };
 
       break;

@@ -4,6 +4,7 @@ import { useGameStore } from "./state/game";
 import NotificationsSystem from "./components/NotificationsSystem.vue";
 import BoardView from "./components/board/BoardView.vue";
 import ActionBar from "./components/actions/ActionBar.vue";
+import EffectPrompt from "./components/actions/EffectPrompt.vue";
 
 const game = useGameStore();
 
@@ -117,5 +118,6 @@ const mySlot = computed(() => {
       </div>
     </section>
     <NotificationsSystem />
+    <EffectPrompt v-if="game.room && game.state" />
   </main>
 </template>

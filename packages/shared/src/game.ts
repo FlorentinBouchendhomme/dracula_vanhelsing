@@ -106,7 +106,7 @@ export function createInitialGameState(): GameState {
     log: [],
     effectPrompt: null,
     revealed: {},
-    
+
     winner: null
   };
 }
@@ -126,6 +126,9 @@ export function startNewRound(prev: GameState): GameState {
     skipNextTurn: false,
     turnPhase: "DRAW",
     drawnCard: null,
+    log: [],
+    effectPrompt: null,
+    revealed: {},
     activePlayer: "P1"
   };
 }

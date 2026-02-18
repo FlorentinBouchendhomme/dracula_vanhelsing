@@ -26,6 +26,18 @@ const drawnMeta = computed(() => {
   if (!props.state.drawnCard) return null;
   return getCardMeta(props.state.drawnCard);
 });
+
+function cardKey(card: { color: string; id: number }): string {
+  return `${card.color}:${card.id}`;
+}
+
+const isTopRevealed = computed(() => {
+  const top = props.state.deck.draw[0];
+  if (!top) return false;
+  const revealed = props.state.revealed ?? {};
+  return Boolean(revealed[cardKey(top)]);
+});
+const topCard = computed(() => props.state.deck.draw[0] ?? null);
 </script>
 
 <template>
@@ -64,6 +76,9 @@ const drawnMeta = computed(() => {
           Phase => <b>{{ state.turnPhase }}</b> ; draw => {{ state.deck.draw.length }} ; discard =>
           {{ state.deck.discard.length }}
         </div>
+        <div v-if="topCard && isTopRevealed" style="opacity: 0.85">
+          Top revealed => {{ topCard.color }} {{ topCard.id }}
+        </div>
       </div>
 
       <div v-if="state.drawnCard && drawnMeta" style="max-width: 420px">
@@ -87,6 +102,27 @@ const drawnMeta = computed(() => {
 
         <div style="opacity: 0.7; font-size: 12px; margin-top: 6px">
           Click the drawn card => discard it and play its effect (later).
+        </div>
+      </div>
+
+      <div v-if="state.log && state.log.length" style="margin-top: 12px">
+        <div style="font-weight: 700; margin-bottom: 6px">Log</div>
+        <div
+          style="
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 10px;
+            max-height: 160px;
+            overflow: auto;
+          "
+        >
+          <div
+            v-for="e in state.log.slice(-12)"
+            :key="e.id"
+            style="font-size: 12px; opacity: 0.85; margin-bottom: 4px"
+          >
+            {{ e.text }}
+          </div>
         </div>
       </div>
     </div>
