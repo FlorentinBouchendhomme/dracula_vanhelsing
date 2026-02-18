@@ -4,6 +4,22 @@ import { isPlayerId, isZoneId } from "./validate";
 
 export function mapUnknownAction(action: UnknownAction): ServerAction | null {
   switch (action.kind) {
+    case "PLAY_CARD": {
+      const payload = action.payload;
+
+      if (!payload) return null;
+
+      const { actor, zoneId } = payload;
+
+      if (!isPlayerId(actor) || !isZoneId(zoneId)) return null;
+
+      return {
+        kind: "PLAY_CARD",
+        playerId: actor,
+        zoneId
+      };
+    }
+
     case "END_ROUND":
       return { kind: "END_ROUND" };
 

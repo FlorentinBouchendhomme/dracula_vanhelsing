@@ -6,7 +6,8 @@ import type {
   PlayerId,
   RoomCode,
   RoomSummary,
-  ServerToClient
+  ServerToClient,
+  UnknownAction
 } from "@game/shared";
 import { WsClient } from "../net/ws";
 import { makeId } from "../utils/uuid";
@@ -143,7 +144,7 @@ export const useGameStore = defineStore("game", {
       if (!this.selectedCardZoneId) return;
       if (!this.canAct()) return;
 
-      const action = {
+      const action: UnknownAction = {
         kind: "PLAY_CARD",
         payload: {
           actor: this.playerId,

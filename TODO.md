@@ -15,7 +15,7 @@
 - [x] feat => client error handling + notifications
 - [x] feat => board UI (common + player areas)
 - [x] feat => cards UI + rules
-- [ ] feat => action UX (select target, confirm, cancel, disabled states)
+- [] feat => action UX (select target, confirm, cancel, disabled states)
 
 - [ ] test => rules scenarios
 - [ ] test => protocol tests (basic encode/decode, invalid messages)

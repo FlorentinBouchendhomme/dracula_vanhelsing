@@ -1,4 +1,4 @@
-import type { GameState, PlayerId, RoomCode, RoomSummary } from "./types";
+import type { GameState, PlayerId, RoomCode, RoomSummary, ZoneId } from "./types";
 
 export type ClientMsgId = string;
 export type ServerMsgId = string;
@@ -30,10 +30,27 @@ export interface ErrorPayload {
   refId?: string; // Optional => id of message that caused the error
 }
 
-export type UnknownAction = {
-  kind: string;
-  payload?: unknown;
-};
+export type UnknownAction =
+  | {
+      kind: "PLAY_CARD";
+      payload: { actor: PlayerId; zoneId: ZoneId };
+    }
+  | {
+      kind: "END_ROUND";
+      payload?: unknown;
+    }
+  | {
+      kind: "DAMAGE_DRACULA";
+      payload: { amount: number };
+    }
+  | {
+      kind: "TRANSFORM_IN_ZONE";
+      payload: { zoneId: ZoneId; amount: number };
+    }
+  | {
+      kind: "SET_ACTIVE_PLAYER";
+      payload: { playerId: PlayerId };
+    };
 
 export type ClientToServer =
   | Envelope<

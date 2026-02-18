@@ -1,7 +1,8 @@
-import type { GameState, ZoneId } from "@game/shared";
+import type { GameState, PlayerId, ZoneId } from "@game/shared";
 import { GAME_LIMITS } from "@game/shared";
 import { computeWinner } from "./win";
 import { ServerAction } from "./actions";
+import { validatePlayCard } from "./validate";
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.trunc(value)));
@@ -48,6 +49,54 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
 
     case "SET_ACTIVE_PLAYER": {
       next = { ...state, activePlayer: action.playerId };
+      break;
+    }
+
+    case "PLAY_CARD": {
+      const validationError = validatePlayCard(state, action.playerId, action.zoneId);
+      if (validationError) {
+        return state; // No state change; error already handled earlier if needed
+      }
+
+      const entry = state.layouts[action.playerId][action.zoneId];
+      const playedCard = entry.card;
+
+      const nextDiscard = [...state.deck.discard, playedCard];
+      const nextDraw = [...state.deck.draw];
+
+      // Draw replacement card if available
+      const replacement = nextDraw.shift();
+
+      const nextLayouts = {
+        ...state.layouts,
+        [action.playerId]: {
+          ...state.layouts[action.playerId],
+          [action.zoneId]: replacement ? { card: replacement, visibility: "HIDDEN" } : entry // no replacement if deck empty
+        }
+      };
+
+      const nextActivePlayer: PlayerId = action.playerId === "P1" ? "P2" : "P1";
+
+      let nextState = {
+        ...state,
+        layouts: nextLayouts,
+        deck: {
+          draw: nextDraw,
+          discard: nextDiscard
+        },
+        activePlayer: nextActivePlayer
+      };
+
+      // End of round if deck empty AFTER turn
+      if (nextDraw.length === 0) {
+        nextState = {
+          ...nextState,
+          roundEnded: true,
+          roundEndReason: "DECK_EMPTY"
+        };
+      }
+
+      next = nextState;
       break;
     }
 
