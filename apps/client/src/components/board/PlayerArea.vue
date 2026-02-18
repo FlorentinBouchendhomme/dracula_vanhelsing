@@ -2,12 +2,16 @@
 import type { GameState, PlayerId, ZoneId } from "@game/shared";
 import { ZONE_IDS, getCardMeta } from "@game/shared";
 import GameCard from "../cards/GameCard.vue";
+import { useGameStore } from "../../state/game";
+
+const game = useGameStore();
 
 const props = defineProps<{
   title: string;
   playerId: PlayerId;
   state: GameState;
   currentPlayerId: PlayerId | null; // viewer
+  isPersonal?: boolean;
 }>();
 
 function isHidden(zoneId: ZoneId): boolean {
@@ -45,12 +49,26 @@ function cardInfo(zoneId: ZoneId) {
       >
         <div style="font-weight: 700; padding-top: 6px">Zone {{ z }}</div>
 
-        <GameCard
-          :color="cardInfo(z).color"
-          :id="cardInfo(z).id"
-          :description="cardInfo(z).description"
-          :is-hidden="isHidden(z)"
-        />
+        <div
+          :style="{
+            opacity: isPersonal && game.canAct() ? 1 : 0.7,
+            cursor: isPersonal && game.canAct() ? 'pointer' : 'not-allowed',
+            outline: game.selectedCardZoneId === z ? '2px solid #111' : 'none',
+            borderRadius: '10px'
+          }"
+          @click="
+            () => {
+              if (isPersonal && game.canAct()) game.selectCardZone(z);
+            }
+          "
+        >
+          <GameCard
+            :id="cardInfo(z).id"
+            :color="cardInfo(z).color"
+            :description="cardInfo(z).description"
+            :is-hidden="isHidden(z)"
+          />
+        </div>
       </div>
     </div>
   </section>

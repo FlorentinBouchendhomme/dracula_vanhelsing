@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { useGameStore } from "./state/game";
 import NotificationsSystem from "./components/NotificationsSystem.vue";
 import BoardView from "./components/board/BoardView.vue";
+import ActionBar from "./components/actions/ActionBar.vue";
 
 const game = useGameStore();
 
@@ -105,6 +106,8 @@ const mySlot = computed(() => {
           :state="game.state"
           :viewer-player-id="game.playerId"
         />
+
+        <ActionBar v-if="game.room && game.state" />
 
         <!-- Debug -->
         <pre
