@@ -4,19 +4,44 @@ import { isPlayerId, isZoneId } from "./validate";
 
 export function mapUnknownAction(action: UnknownAction): ServerAction | null {
   switch (action.kind) {
-    case "PLAY_CARD": {
+    case "DRAW_CARD": {
       const payload = action.payload;
-
       if (!payload) return null;
 
-      const { actor, zoneId } = payload;
-
-      if (!isPlayerId(actor) || !isZoneId(zoneId)) return null;
+      if (!isPlayerId(payload.actor)) return null;
 
       return {
-        kind: "PLAY_CARD",
+        kind: "DRAW_CARD",
+        playerId: payload.actor
+      };
+    }
+
+    case "RESOLVE_CHOICE": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const actor = payload.actor;
+      const keepDrawn = payload.keepDrawn;
+
+      if (!isPlayerId(actor)) return null;
+      if (typeof keepDrawn !== "boolean") return null;
+
+      if (keepDrawn) {
+        const zoneId = payload.zoneId;
+        if (!isZoneId(zoneId)) return null;
+
+        return {
+          kind: "RESOLVE_CHOICE",
+          playerId: actor,
+          keepDrawn: true,
+          zoneId
+        };
+      }
+
+      return {
+        kind: "RESOLVE_CHOICE",
         playerId: actor,
-        zoneId
+        keepDrawn: false
       };
     }
 

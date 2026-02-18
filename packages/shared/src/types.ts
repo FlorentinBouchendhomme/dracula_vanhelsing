@@ -57,6 +57,8 @@ export interface AssetState {
 
 export type RoundEndReason = "CARD_8" | "DECK_EMPTY" | null;
 
+export type TurnPhase = "DRAW" | "CHOOSE";
+
 export interface GameState {
   version: number;
   round: RoundCounter;
@@ -74,6 +76,9 @@ export interface GameState {
   roundEnded: boolean;
   roundEndReason: RoundEndReason;
   skipNextTurn: boolean; // used by card 8
+
+  turnPhase: TurnPhase;
+  drawnCard: CardInstance | null;
 
   roles: RolesByPlayer;
 

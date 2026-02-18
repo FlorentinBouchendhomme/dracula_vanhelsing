@@ -138,18 +138,14 @@ export const useGameStore = defineStore("game", {
       return true;
     },
 
-    confirmPlayCard(): void {
-      if (!this.state || !this.roomCode) return;
-      if (!this.playerId) return;
-      if (!this.selectedCardZoneId) return;
+    drawCard(): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
       if (!this.canAct()) return;
+      if (this.state.turnPhase !== "DRAW") return;
 
       const action: UnknownAction = {
-        kind: "PLAY_CARD",
-        payload: {
-          actor: this.playerId,
-          zoneId: this.selectedCardZoneId
-        }
+        kind: "DRAW_CARD",
+        payload: { actor: this.playerId }
       };
 
       const msg = makeClientEnvelope(
@@ -163,9 +159,47 @@ export const useGameStore = defineStore("game", {
       );
 
       this.send(msg);
-      this.clearSelection();
     },
 
+    resolveChoice(keepDrawn: boolean, zoneId?: import("@game/shared").ZoneId): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
+      if (this.state.turnPhase !== "CHOOSE") return;
+
+      let action: UnknownAction;
+
+      if (keepDrawn) {
+        if (!zoneId) return;
+
+        action = {
+          kind: "RESOLVE_CHOICE",
+          payload: {
+            actor: this.playerId,
+            keepDrawn: true,
+            zoneId
+          }
+        };
+      } else {
+        action = {
+          kind: "RESOLVE_CHOICE",
+          payload: {
+            actor: this.playerId,
+            keepDrawn: false
+          }
+        };
+      }
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        {
+          code: this.roomCode,
+          stateVersion: this.state.version,
+          action
+        },
+        makeId()
+      );
+
+      this.send(msg);
+    },
     setReady(isReady: boolean): void {
       if (!this.roomCode) return;
       const msg = makeClientEnvelope("PLAYER_READY", { code: this.roomCode, isReady }, makeId());

@@ -1,13 +1,13 @@
 import type { PlayerId, ZoneId } from "@game/shared";
 
-export type PlayCardAction = {
-  kind: "PLAY_CARD";
-  playerId: PlayerId;
-  zoneId: ZoneId;
-};
-
 export type ServerAction =
-  | PlayCardAction
+  | { kind: "DRAW_CARD"; playerId: PlayerId }
+  | {
+      kind: "RESOLVE_CHOICE";
+      playerId: PlayerId;
+      keepDrawn: boolean;
+      zoneId?: ZoneId;
+    }
   | { kind: "END_ROUND" }
   | { kind: "DAMAGE_DRACULA"; amount: number }
   | { kind: "TRANSFORM_IN_ZONE"; zoneId: ZoneId; amount: number } // amount => humans -> vampires

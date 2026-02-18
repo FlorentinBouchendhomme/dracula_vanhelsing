@@ -2,7 +2,7 @@ import type { GameState, PlayerId, ZoneId } from "@game/shared";
 import { GAME_LIMITS } from "@game/shared";
 import { computeWinner } from "./win";
 import { ServerAction } from "./actions";
-import { validatePlayCard } from "./validate";
+import { validateDrawCard, validateResolveChoice } from "./validate";
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.trunc(value)));
@@ -52,43 +52,66 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
       break;
     }
 
-    case "PLAY_CARD": {
-      const validationError = validatePlayCard(state, action.playerId, action.zoneId);
-      if (validationError) {
-        return state; // No state change; error already handled earlier if needed
+    case "DRAW_CARD": {
+      const err = validateDrawCard(state, action.playerId);
+      if (err) return state;
+
+      const nextDraw = [...state.deck.draw];
+      const card = nextDraw.shift();
+      if (!card) return state;
+
+      next = {
+        ...state,
+        deck: { ...state.deck, draw: nextDraw },
+        drawnCard: card,
+        turnPhase: "CHOOSE"
+      };
+      break;
+    }
+
+    case "RESOLVE_CHOICE": {
+      const err = validateResolveChoice(state, action.playerId, action.keepDrawn, action.zoneId);
+      if (err) return state;
+
+      const drawn = state.drawnCard;
+      if (!drawn) return state;
+
+      let nextLayouts = state.layouts;
+      const nextDiscard = [...state.deck.discard];
+
+      if (action.keepDrawn && action.zoneId) {
+        const oldCard = state.layouts[action.playerId][action.zoneId].card;
+        nextDiscard.push(oldCard);
+
+        nextLayouts = {
+          ...state.layouts,
+          [action.playerId]: {
+            ...state.layouts[action.playerId],
+            [action.zoneId]: {
+              card: drawn,
+              visibility: "HIDDEN"
+            }
+          }
+        };
+      } else {
+        nextDiscard.push(drawn);
       }
 
-      const entry = state.layouts[action.playerId][action.zoneId];
-      const playedCard = entry.card;
+      const nextActive: PlayerId = action.playerId === "P1" ? "P2" : "P1";
 
-      const nextDiscard = [...state.deck.discard, playedCard];
-      const nextDraw = [...state.deck.draw];
-
-      // Draw replacement card if available
-      const replacement = nextDraw.shift();
-
-      const nextLayouts = {
-        ...state.layouts,
-        [action.playerId]: {
-          ...state.layouts[action.playerId],
-          [action.zoneId]: replacement ? { card: replacement, visibility: "HIDDEN" } : entry // no replacement if deck empty
-        }
-      };
-
-      const nextActivePlayer: PlayerId = action.playerId === "P1" ? "P2" : "P1";
-
-      let nextState = {
+      let nextState: GameState = {
         ...state,
         layouts: nextLayouts,
         deck: {
-          draw: nextDraw,
+          ...state.deck,
           discard: nextDiscard
         },
-        activePlayer: nextActivePlayer
+        drawnCard: null,
+        turnPhase: "DRAW",
+        activePlayer: nextActive
       };
 
-      // End of round if deck empty AFTER turn
-      if (nextDraw.length === 0) {
+      if (nextState.deck.draw.length === 0) {
         nextState = {
           ...nextState,
           roundEnded: true,

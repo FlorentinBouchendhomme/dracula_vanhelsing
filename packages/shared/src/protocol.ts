@@ -32,8 +32,16 @@ export interface ErrorPayload {
 
 export type UnknownAction =
   | {
-      kind: "PLAY_CARD";
-      payload: { actor: PlayerId; zoneId: ZoneId };
+      kind: "DRAW_CARD";
+      payload: { actor: PlayerId };
+    }
+  | {
+      kind: "RESOLVE_CHOICE";
+      payload: {
+        actor: PlayerId;
+        keepDrawn: boolean;
+        zoneId?: ZoneId;
+      };
     }
   | {
       kind: "END_ROUND";

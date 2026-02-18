@@ -30,3 +30,28 @@ export function validatePlayCard(
 
   return null;
 }
+
+export function validateDrawCard(state: GameState, playerId: PlayerId): string | null {
+  if (state.winner) return "GAME_OVER";
+  if (state.roundEnded) return "ROUND_ENDED";
+  if (state.activePlayer !== playerId) return "NOT_YOUR_TURN";
+  if (state.turnPhase !== "DRAW") return "INVALID_PHASE";
+  if (state.deck.draw.length === 0) return "DECK_EMPTY";
+
+  return null;
+}
+
+export function validateResolveChoice(
+  state: GameState,
+  playerId: PlayerId,
+  keepDrawn: boolean,
+  zoneId?: ZoneId
+): string | null {
+  if (state.activePlayer !== playerId) return "NOT_YOUR_TURN";
+  if (state.turnPhase !== "CHOOSE") return "INVALID_PHASE";
+  if (!state.drawnCard) return "NO_DRAWN_CARD";
+
+  if (keepDrawn && !zoneId) return "ZONE_REQUIRED";
+
+  return null;
+}

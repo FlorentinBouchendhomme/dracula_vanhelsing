@@ -6,7 +6,7 @@ import type { ClientToServer, GameState, ServerToClient } from "@game/shared";
 
 import { applyServerAction } from "./game/engine";
 import { mapUnknownAction } from "./game/mapper";
-import { validatePlayCard, validateStateVersion } from "./game/validate";
+import { validateStateVersion } from "./game/validate";
 import { makeError } from "./net/errors";
 import type { SocketSession } from "./net/session";
 import { RoomManager } from "./rooms/manager";
@@ -185,14 +185,6 @@ wss.on("connection", (ws) => {
       if (!mapped) {
         send(ws, makeError("INVALID_ACTION", "Unsupported or invalid action payload", refId));
         return;
-      }
-
-      if (mapped.kind === "PLAY_CARD") {
-        const error = validatePlayCard(room.state, mapped.playerId, mapped.zoneId);
-        if (error) {
-          send(ws, makeError(error as any, "Invalid play card action", refId));
-          return;
-        }
       }
 
       const nextState = applyServerAction(room.state, mapped);
