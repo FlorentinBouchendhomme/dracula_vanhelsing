@@ -99,6 +99,8 @@ export interface GameState {
   effectPrompt: EffectPrompt;
   revealed: RevealedCardKeys;
 
+  replayPending: boolean;
+
   winner: null | PlayerId;
 }
 

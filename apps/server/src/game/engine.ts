@@ -25,15 +25,35 @@ function transformInZone(state: GameState, zoneId: ZoneId, amount: number): Game
   };
 }
 
-function finishTurn(state: GameState, actor: PlayerId): GameState {
-  const nextActive: PlayerId = actor === "P1" ? "P2" : "P1";
-  let next = { ...state, activePlayer: nextActive, turnPhase: "DRAW" as const };
-
-  if (next.deck.draw.length === 0) {
-    next = { ...next, roundEnded: true, roundEndReason: "DECK_EMPTY" };
+function endTurnOrReplay(state: GameState, actor: PlayerId): GameState {
+  // If deck is empty => round ends, replay cannot happen
+  if (state.deck.draw.length === 0) {
+    return {
+      ...state,
+      roundEnded: true,
+      roundEndReason: "DECK_EMPTY",
+      replayPending: false,
+      turnPhase: "DRAW"
+    };
   }
 
-  return next;
+  // Replay => same player plays again
+  if (state.replayPending) {
+    return {
+      ...state,
+      replayPending: false,
+      activePlayer: actor,
+      turnPhase: "DRAW"
+    };
+  }
+
+  // Normal turn switch
+  const nextActive: PlayerId = actor === "P1" ? "P2" : "P1";
+  return {
+    ...state,
+    activePlayer: nextActive,
+    turnPhase: "DRAW"
+  };
 }
 
 export function applyServerAction(state: GameState, action: ServerAction): GameState {
@@ -139,7 +159,7 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
       }
 
       // Otherwise finish the turn normally
-      next = finishTurn(intermediate, action.playerId);
+      next = endTurnOrReplay(intermediate, action.playerId)
       break;
     }
 
@@ -179,7 +199,7 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
         log: nextLog
       };
 
-      next = finishTurn(cleared, action.playerId);
+      next = endTurnOrReplay(cleared, action.playerId)
       break;
     }
 

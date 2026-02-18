@@ -107,6 +107,8 @@ export function createInitialGameState(): GameState {
     effectPrompt: null,
     revealed: {},
 
+    replayPending: false,
+
     winner: null
   };
 }
@@ -129,6 +131,7 @@ export function startNewRound(prev: GameState): GameState {
     log: [],
     effectPrompt: null,
     revealed: {},
-    activePlayer: "P1"
+    activePlayer: "P1",
+    replayPending: false,
   };
 }

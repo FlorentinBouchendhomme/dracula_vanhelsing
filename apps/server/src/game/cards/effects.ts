@@ -37,6 +37,11 @@ export function applyCardEffect(
       return { ...s1, effectPrompt: { kind: "REVEAL_OPP", actor }, turnPhase: "EFFECT" };
     }
 
+    case 5: {
+      const s1 = pushLog(state, `${actor} played 5 => replay`);
+      return { ...s1, replayPending: true };
+    }
+
     default:
       return pushLog(state, `${actor} played ${played.id} => effect not implemented`);
   }
