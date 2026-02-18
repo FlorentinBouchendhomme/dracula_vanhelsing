@@ -55,3 +55,35 @@ export function validateResolveChoice(
 
   return null;
 }
+
+export function canResolveEffectPrompt(state: GameState, actor: PlayerId): string | null {
+  if (state.winner) return "GAME_OVER";
+  if (state.roundEnded) return "ROUND_ENDED";
+  if (state.turnPhase !== "EFFECT") return "INVALID_PHASE";
+  if (!state.effectPrompt) return "NO_PROMPT";
+  if (state.effectPrompt.actor !== actor) return "NOT_YOUR_PROMPT";
+  return null;
+}
+
+export function validateEffectRevealCard(
+  state: GameState,
+  actor: PlayerId,
+  targetPlayerId: PlayerId,
+  zoneId: ZoneId
+): string | null {
+  const base = canResolveEffectPrompt(state, actor);
+  if (base) return base;
+
+  const prompt = state.effectPrompt;
+  if (!prompt) return "NO_PROMPT";
+
+  if (prompt.kind === "REVEAL_OWN" && targetPlayerId !== actor) return "INVALID_TARGET";
+  if (prompt.kind === "REVEAL_OPP" && targetPlayerId === actor) return "INVALID_TARGET";
+
+  const entry = state.layouts[targetPlayerId]?.[zoneId];
+  if (!entry) return "INVALID_ZONE";
+
+  if (entry.visibility !== "HIDDEN") return "ALREADY_VISIBLE";
+
+  return null;
+}

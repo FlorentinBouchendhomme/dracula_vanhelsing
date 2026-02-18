@@ -15,12 +15,12 @@
 - [x] feat => client error handling + notifications
 - [x] feat => board UI (common + player areas)
 - [x] feat => cards UI + rules
-- [] feat => action UX (select target, confirm, cancel, disabled states)
+- [x] feat => action UX (select target, confirm, cancel, disabled states)
 
 - [ ] test => rules scenarios
 - [ ] test => protocol tests (basic encode/decode, invalid messages)
 
-- [ ] feat => game flow + action log
+- [x] feat => game flow + action log
 - [ ] feat => win screen + restart game
 
 - [ ] feat => final design

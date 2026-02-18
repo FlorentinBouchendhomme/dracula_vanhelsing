@@ -103,6 +103,10 @@ export function createInitialGameState(): GameState {
     turnPhase: "DRAW",
     drawnCard: null,
 
+    log: [],
+    effectPrompt: null,
+    revealed: {},
+    
     winner: null
   };
 }

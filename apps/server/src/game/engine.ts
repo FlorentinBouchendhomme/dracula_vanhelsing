@@ -2,7 +2,8 @@ import type { GameState, PlayerId, ZoneId } from "@game/shared";
 import { GAME_LIMITS } from "@game/shared";
 import { computeWinner } from "./win";
 import { ServerAction } from "./actions";
-import { validateDrawCard, validateResolveChoice } from "./validate";
+import { validateDrawCard, validateEffectRevealCard, validateResolveChoice } from "./validate";
+import { applyCardEffect, shouldBeVisibleFromGlobalReveal } from "./cards/effects";
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.trunc(value)));
@@ -22,6 +23,17 @@ function transformInZone(state: GameState, zoneId: ZoneId, amount: number): Game
     ...state,
     zones: { ...state.zones, [zoneId]: nextZone }
   };
+}
+
+function finishTurn(state: GameState, actor: PlayerId): GameState {
+  const nextActive: PlayerId = actor === "P1" ? "P2" : "P1";
+  let next = { ...state, activePlayer: nextActive, turnPhase: "DRAW" as const };
+
+  if (next.deck.draw.length === 0) {
+    next = { ...next, roundEnded: true, roundEndReason: "DECK_EMPTY" };
+  }
+
+  return next;
 }
 
 export function applyServerAction(state: GameState, action: ServerAction): GameState {
@@ -64,8 +76,13 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
         ...state,
         deck: { ...state.deck, draw: nextDraw },
         drawnCard: card,
-        turnPhase: "CHOOSE"
+        turnPhase: "CHOOSE",
+        log: [
+          ...state.log,
+          { id: crypto.randomUUID(), ts: Date.now(), text: `${action.playerId} drew a card` }
+        ]
       };
+
       break;
     }
 
@@ -79,9 +96,14 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
       let nextLayouts = state.layouts;
       const nextDiscard = [...state.deck.discard];
 
+      let playedCard = drawn;
+
       if (action.keepDrawn && action.zoneId) {
         const oldCard = state.layouts[action.playerId][action.zoneId].card;
+        playedCard = oldCard;
         nextDiscard.push(oldCard);
+
+        const visible = shouldBeVisibleFromGlobalReveal(state, drawn);
 
         nextLayouts = {
           ...state.layouts,
@@ -89,37 +111,76 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
             ...state.layouts[action.playerId],
             [action.zoneId]: {
               card: drawn,
-              visibility: "HIDDEN"
+              visibility: visible ? "VISIBLE" : "HIDDEN"
             }
           }
         };
       } else {
+        // discard drawn (played)
         nextDiscard.push(drawn);
       }
 
-      const nextActive: PlayerId = action.playerId === "P1" ? "P2" : "P1";
-
-      let nextState: GameState = {
+      let intermediate: GameState = {
         ...state,
         layouts: nextLayouts,
-        deck: {
-          ...state.deck,
-          discard: nextDiscard
-        },
+        deck: { ...state.deck, discard: nextDiscard },
         drawnCard: null,
+        // default => will be overwritten by effect if prompt
         turnPhase: "DRAW",
-        activePlayer: nextActive
+        effectPrompt: null
       };
 
-      if (nextState.deck.draw.length === 0) {
-        nextState = {
-          ...nextState,
-          roundEnded: true,
-          roundEndReason: "DECK_EMPTY"
-        };
+      // Apply effect (may set prompt + EFFECT phase)
+      intermediate = applyCardEffect(intermediate, action.playerId, playedCard);
+
+      // If effect requires prompt => keep actor as active player and stop here
+      if (intermediate.turnPhase === "EFFECT" && intermediate.effectPrompt) {
+        next = intermediate;
+        break;
       }
 
-      next = nextState;
+      // Otherwise finish the turn normally
+      next = finishTurn(intermediate, action.playerId);
+      break;
+    }
+
+    case "EFFECT_REVEAL_CARD": {
+      const err = validateEffectRevealCard(
+        state,
+        action.playerId,
+        action.targetPlayerId,
+        action.zoneId
+      );
+      if (err) return state;
+
+      const entry = state.layouts[action.targetPlayerId][action.zoneId];
+
+      const nextLayouts = {
+        ...state.layouts,
+        [action.targetPlayerId]: {
+          ...state.layouts[action.targetPlayerId],
+          [action.zoneId]: { ...entry, visibility: "VISIBLE" }
+        }
+      };
+
+      const nextLog = [
+        ...state.log,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          text: `${action.playerId} revealed ${action.targetPlayerId}:${action.zoneId}`
+        }
+      ];
+
+      const cleared: GameState = {
+        ...state,
+        layouts: nextLayouts,
+        effectPrompt: null,
+        turnPhase: "DRAW",
+        log: nextLog
+      };
+
+      next = finishTurn(cleared, action.playerId);
       break;
     }
 

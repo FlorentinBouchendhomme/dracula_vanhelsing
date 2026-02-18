@@ -56,6 +56,14 @@ export type UnknownAction =
       payload: { zoneId: ZoneId; amount: number };
     }
   | {
+      kind: "EFFECT_REVEAL_CARD";
+      payload: {
+        actor: PlayerId;
+        targetPlayerId: PlayerId;
+        zoneId: ZoneId;
+      };
+    }
+  | {
       kind: "SET_ACTIVE_PLAYER";
       payload: { playerId: PlayerId };
     };

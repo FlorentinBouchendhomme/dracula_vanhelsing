@@ -70,6 +70,24 @@ export function mapUnknownAction(action: UnknownAction): ServerAction | null {
       return { kind: "SET_ACTIVE_PLAYER", playerId };
     }
 
+    case "EFFECT_REVEAL_CARD": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const { actor, targetPlayerId, zoneId } = payload;
+
+      if (!isPlayerId(actor)) return null;
+      if (!isPlayerId(targetPlayerId)) return null;
+      if (!isZoneId(zoneId)) return null;
+
+      return {
+        kind: "EFFECT_REVEAL_CARD",
+        playerId: actor,
+        targetPlayerId,
+        zoneId
+      };
+    }
+
     default:
       return null;
   }

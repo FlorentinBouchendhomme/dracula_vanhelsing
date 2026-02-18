@@ -15,6 +15,8 @@ export type CardInstance = Readonly<{
 
 export type CardVisibility = "HIDDEN" | "VISIBLE";
 
+export type RevealedCardKeys = Readonly<Record<string, true>>;
+
 export type RoundCounter = 1 | 2 | 3 | 4 | 5;
 
 export type RoomCode = string;
@@ -57,7 +59,18 @@ export interface AssetState {
 
 export type RoundEndReason = "CARD_8" | "DECK_EMPTY" | null;
 
-export type TurnPhase = "DRAW" | "CHOOSE";
+export type TurnPhase = "DRAW" | "CHOOSE" | "EFFECT";
+
+export type LogEntry = Readonly<{
+  id: string;
+  ts: number;
+  text: string;
+}>;
+
+export type EffectPrompt = null | Readonly<{
+  kind: "REVEAL_OWN" | "REVEAL_OPP";
+  actor: PlayerId;
+}>;
 
 export interface GameState {
   version: number;
@@ -81,6 +94,10 @@ export interface GameState {
   drawnCard: CardInstance | null;
 
   roles: RolesByPlayer;
+
+  log: readonly LogEntry[];
+  effectPrompt: EffectPrompt;
+  revealed: RevealedCardKeys;
 
   winner: null | PlayerId;
 }
