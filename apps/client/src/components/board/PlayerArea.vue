@@ -3,6 +3,7 @@ import type { GameState, PlayerId, ZoneId } from "@game/shared";
 import { ZONE_IDS, getCardMeta } from "@game/shared";
 import GameCard from "../cards/GameCard.vue";
 import { useGameStore } from "../../state/game";
+import { computed } from "vue";
 
 const game = useGameStore();
 
@@ -30,6 +31,10 @@ function cardInfo(zoneId: ZoneId) {
     description: meta.description
   };
 }
+
+const isClickable = computed(
+  () => props.isPersonal && game.canAct() && props.state.turnPhase === "CHOOSE"
+);
 </script>
 
 <template>
@@ -51,14 +56,17 @@ function cardInfo(zoneId: ZoneId) {
 
         <div
           :style="{
-            opacity: isPersonal && game.canAct() ? 1 : 0.7,
-            cursor: isPersonal && game.canAct() ? 'pointer' : 'not-allowed',
+            opacity: isClickable ? 1 : 0.7,
+            cursor: isClickable ? 'pointer' : 'not-allowed',
             outline: game.selectedCardZoneId === z ? '2px solid #111' : 'none',
-            borderRadius: '10px'
+            borderRadius: '10px',
           }"
           @click="
             () => {
-              if (isPersonal && game.canAct()) game.selectCardZone(z);
+              if (!isPersonal) return;
+              if (!game.canAct()) return;
+              if (state.turnPhase !== 'CHOOSE') return;
+              game.selectCardZone(z);
             }
           "
         >

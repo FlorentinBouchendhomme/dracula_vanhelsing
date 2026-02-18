@@ -48,8 +48,12 @@ const reason = computed(() => {
         Cancel
       </button>
 
-      <button :disabled="!canConfirm" style="padding: 8px 12px" @click="game.confirmPlayCard()">
-        Confirm
+      <button
+        @click="game.resolveChoice(true, game.selectedCardZoneId ?? undefined)"
+        :disabled="!canConfirm"
+        style="padding: 8px 12px"
+      >
+        Keep drawn
       </button>
     </div>
   </div>

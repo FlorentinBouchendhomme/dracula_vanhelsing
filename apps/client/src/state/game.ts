@@ -116,6 +116,9 @@ export const useGameStore = defineStore("game", {
     },
 
     selectCardZone(zoneId: import("@game/shared").ZoneId): void {
+      if (!this.state) return;
+      if (this.state.turnPhase !== "CHOOSE") return;
+
       this.selectedCardZoneId = zoneId;
       this.selectedZoneId = zoneId;
     },
@@ -200,6 +203,7 @@ export const useGameStore = defineStore("game", {
 
       this.send(msg);
     },
+
     setReady(isReady: boolean): void {
       if (!this.roomCode) return;
       const msg = makeClientEnvelope("PLAYER_READY", { code: this.roomCode, isReady }, makeId());
