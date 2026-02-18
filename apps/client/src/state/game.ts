@@ -6,7 +6,8 @@ import type {
   PlayerId,
   RoomCode,
   RoomSummary,
-  ServerToClient
+  ServerToClient,
+  UnknownAction
 } from "@game/shared";
 import { WsClient } from "../net/ws";
 import { makeId } from "../utils/uuid";
@@ -34,6 +35,9 @@ export const useGameStore = defineStore("game", {
 
     notifications: [] as Notification[],
     lastJoinAttemptCode: null as string | null,
+
+    selectedZoneId: null as import("@game/shared").ZoneId | null,
+    selectedCardZoneId: null as import("@game/shared").ZoneId | null,
 
     _ws: null as WsClient | null
   }),
@@ -105,6 +109,61 @@ export const useGameStore = defineStore("game", {
       this.playerId = null;
       this.room = null;
       this.state = null;
+    },
+
+    selectZone(zoneId: import("@game/shared").ZoneId): void {
+      this.selectedZoneId = zoneId;
+    },
+
+    selectCardZone(zoneId: import("@game/shared").ZoneId): void {
+      this.selectedCardZoneId = zoneId;
+      this.selectedZoneId = zoneId;
+    },
+
+    clearSelection(): void {
+      this.selectedZoneId = null;
+      this.selectedCardZoneId = null;
+    },
+
+    canAct(): boolean {
+      if (!this.state || !this.playerId || !this.roomCode) return false;
+      if (this.status !== "connected") return false;
+      if (this.state.winner) return false;
+      if (this.state.roundEnded) return false;
+      if (this.state.activePlayer !== this.playerId) return false;
+
+      const slot = this.room?.slots?.[this.playerId];
+      if (!slot?.isReady) return false;
+
+      return true;
+    },
+
+    confirmPlayCard(): void {
+      if (!this.state || !this.roomCode) return;
+      if (!this.playerId) return;
+      if (!this.selectedCardZoneId) return;
+      if (!this.canAct()) return;
+
+      const action: UnknownAction = {
+        kind: "PLAY_CARD",
+        payload: {
+          actor: this.playerId,
+          zoneId: this.selectedCardZoneId
+        }
+      };
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        {
+          code: this.roomCode,
+          stateVersion: this.state.version,
+          action
+        },
+        makeId()
+      );
+
+      this.send(msg);
+      this.clearSelection();
     },
 
     setReady(isReady: boolean): void {

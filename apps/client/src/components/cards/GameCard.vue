@@ -25,7 +25,7 @@ function headerText(color: CardColor, id: CardId): string {
   >
     <div style="display: flex; justify-content: space-between; gap: 8px">
       <div style="font-weight: 800">
-        {{ isHidden ? 'Hidden' : headerText(color, id) }}
+        {{ isHidden ? "Hidden" : headerText(color, id) }}
       </div>
       <div
         :style="{
@@ -41,7 +41,7 @@ function headerText(color: CardColor, id: CardId): string {
     </div>
 
     <div style="margin-top: 8px; opacity: 0.85; font-size: 13px; line-height: 1.25">
-      {{ isHidden ? 'Card is hidden.' : description }}
+      {{ isHidden ? "Card is hidden." : description }}
     </div>
   </div>
 </template>
