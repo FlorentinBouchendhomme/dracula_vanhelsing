@@ -79,7 +79,8 @@ export type EffectPrompt =
       step: "PICK_A" | "PICK_B";
       firstZoneId?: ZoneId;
     }>
-  | Readonly<{ kind: "SWAP_SAME_ZONE"; actor: PlayerId }>;
+  | Readonly<{ kind: "SWAP_SAME_ZONE"; actor: PlayerId }>
+  | Readonly<{ kind: "SWAP_TRUMP"; actor: PlayerId }>;
 
 export interface GameState {
   version: number;

@@ -44,6 +44,9 @@ const title = computed(() => {
     case "SWAP_SAME_ZONE":
       return "Choose zone to swap with opponent";
 
+    case "SWAP_TRUMP":
+      return "Choose a new trump color (swap with current trump)";
+
     default: {
       const _exhaustive: never = p;
       return _exhaustive;
@@ -113,6 +116,29 @@ const availableZones = computed<ZoneId[]>(() => {
       style="background: white; border-radius: 12px; padding: 14px; width: 520px; max-width: 100%"
     >
       <div style="font-weight: 800; margin-bottom: 6px">{{ title }}</div>
+      <div v-if="game.state?.effectPrompt?.kind === 'SWAP_TRUMP'" style="display: grid; gap: 8px">
+        <div style="opacity: 0.8">
+          Current => Trump {{ game.state.assets.order.trump }} ; Order =>
+          {{ game.state.assets.order.nonTrumps[0] }} > {{ game.state.assets.order.nonTrumps[1] }} >
+          {{ game.state.assets.order.nonTrumps[2] }}
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <button
+            v-for="c in game.state.assets.order.nonTrumps"
+            :key="c"
+            @click="game.swapTrump(c)"
+            style="padding: 10px 10px"
+          >
+            Set trump => {{ c }}
+          </button>
+        </div>
+
+        <div style="opacity: 0.7; font-size: 12px">
+          You can only pick one of the 3 non-trump colors.
+        </div>
+      </div>
+
       <div style="opacity: 0.75; margin-bottom: 12px">Target => {{ targetPlayerId }}</div>
 
       <div v-if="hiddenZones.length === 0" style="opacity: 0.8">No hidden cards available.</div>

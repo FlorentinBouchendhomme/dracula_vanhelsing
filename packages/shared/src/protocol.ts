@@ -1,4 +1,4 @@
-import type { GameState, PlayerId, RoomCode, RoomSummary, ZoneId } from "./types";
+import type { CardColor, GameState, PlayerId, RoomCode, RoomSummary, ZoneId } from "./types";
 
 export type ClientMsgId = string;
 export type ServerMsgId = string;
@@ -72,6 +72,10 @@ export type UnknownAction =
   | {
       kind: "EFFECT_SWAP_SAME_ZONE";
       payload: { actor: PlayerId; zoneId: ZoneId };
+    }
+  | {
+      kind: "EFFECT_SWAP_TRUMP";
+      payload: { actor: PlayerId; newTrump: CardColor };
     }
   | {
       kind: "SET_ACTIVE_PLAYER";

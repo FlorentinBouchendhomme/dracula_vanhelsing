@@ -7,7 +7,8 @@ import {
   validateEffectRevealCard,
   validateResolveChoice,
   validateSwapOwnPick,
-  validateSwapSameZone
+  validateSwapSameZone,
+  validateSwapTrump
 } from "./validate";
 import { applyCardEffect, shouldBeVisibleFromGlobalReveal } from "./cards/effects";
 
@@ -300,6 +301,49 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
       const cleared: GameState = {
         ...state,
         layouts: nextLayouts,
+        effectPrompt: null,
+        turnPhase: "DRAW",
+        log: nextLog
+      };
+
+      next = endTurnOrReplay(cleared, action.playerId);
+      break;
+    }
+
+    case "EFFECT_SWAP_TRUMP": {
+      const err = validateSwapTrump(state, action.playerId, action.newTrump);
+      if (err) return state;
+
+      const order = state.assets.order;
+      const idx = order.nonTrumps.indexOf(action.newTrump);
+      if (idx < 0) return state;
+
+      const oldTrump = order.trump;
+
+      const nextNonTrumps = [...order.nonTrumps] as [
+        (typeof order.nonTrumps)[number],
+        (typeof order.nonTrumps)[number],
+        (typeof order.nonTrumps)[number]
+      ];
+      nextNonTrumps[idx] = oldTrump;
+
+      const nextOrder = {
+        nonTrumps: nextNonTrumps,
+        trump: action.newTrump
+      };
+
+      const nextLog = [
+        ...state.log,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          text: `${action.playerId} swapped trump => ${oldTrump} <-> ${action.newTrump}`
+        }
+      ];
+
+      const cleared: GameState = {
+        ...state,
+        assets: { ...state.assets, order: nextOrder },
         effectPrompt: null,
         turnPhase: "DRAW",
         log: nextLog

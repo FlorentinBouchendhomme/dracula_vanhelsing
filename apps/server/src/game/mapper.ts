@@ -117,6 +117,29 @@ export function mapUnknownAction(action: UnknownAction): ServerAction | null {
       return { kind: "EFFECT_SWAP_SAME_ZONE", playerId: actor, zoneId };
     }
 
+    case "EFFECT_SWAP_TRUMP": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const actor = payload.actor;
+      const newTrump = payload.newTrump;
+
+      if (!isPlayerId(actor)) return null;
+      if (
+        newTrump !== "GREEN" &&
+        newTrump !== "YELLOW" &&
+        newTrump !== "RED" &&
+        newTrump !== "BLUE"
+      )
+        return null;
+
+      return {
+        kind: "EFFECT_SWAP_TRUMP",
+        playerId: actor,
+        newTrump
+      };
+    }
+
     default:
       return null;
   }

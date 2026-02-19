@@ -16,4 +16,5 @@ export type ServerAction =
   | { kind: "EFFECT_REVEAL_CARD"; playerId: PlayerId; targetPlayerId: PlayerId; zoneId: ZoneId }
   | { kind: "EFFECT_SWAP_OWN"; playerId: PlayerId; step: "PICK_A" | "PICK_B"; zoneId: ZoneId }
   | { kind: "EFFECT_SWAP_SAME_ZONE"; playerId: PlayerId; zoneId: ZoneId }
+  | { kind: "EFFECT_SWAP_TRUMP"; playerId: PlayerId; newTrump: import("@game/shared").CardColor }
   | { kind: "SET_ACTIVE_PLAYER"; playerId: PlayerId };

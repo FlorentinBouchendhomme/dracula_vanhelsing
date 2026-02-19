@@ -1,4 +1,4 @@
-import type { GameState, PlayerId, ZoneId } from "@game/shared";
+import type { CardColor, GameState, PlayerId, ZoneId } from "@game/shared";
 import { ZONE_IDS } from "@game/shared";
 
 export function isZoneId(value: unknown): value is ZoneId {
@@ -128,6 +128,24 @@ export function validateSwapSameZone(
 
   if (!state.layouts[actor]?.[zoneId]) return "INVALID_ZONE";
   if (!state.layouts[opp]?.[zoneId]) return "INVALID_ZONE";
+
+  return null;
+}
+
+export function validateSwapTrump(
+  state: GameState,
+  actor: PlayerId,
+  newTrump: CardColor
+): string | null {
+  const base = canResolveEffectPrompt(state, actor);
+  if (base) return base;
+
+  const prompt = state.effectPrompt;
+  if (!prompt || prompt.kind !== "SWAP_TRUMP") return "NO_PROMPT";
+
+  const order = state.assets.order;
+  const idx = order.nonTrumps.indexOf(newTrump);
+  if (idx < 0) return "INVALID_TRUMP_CHOICE"; // must be one of the 3 nonTrumps
 
   return null;
 }

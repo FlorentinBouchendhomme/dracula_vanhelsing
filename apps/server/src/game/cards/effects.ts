@@ -60,6 +60,15 @@ export function applyCardEffect(
       };
     }
 
+    case 7: {
+      const s1 = pushLog(state, `${actor} played 7 => swap trump color`);
+      return {
+        ...s1,
+        effectPrompt: { kind: "SWAP_TRUMP", actor },
+        turnPhase: "EFFECT"
+      };
+    }
+
     default:
       return pushLog(state, `${actor} played ${played.id} => effect not implemented`);
   }
