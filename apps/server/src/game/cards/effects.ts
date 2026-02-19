@@ -1,4 +1,5 @@
 import type { CardInstance, GameState, PlayerId } from "@game/shared";
+import { compareZoneCards } from "../round/resolve";
 
 function cardKey(card: CardInstance): string {
   return `${card.color}:${card.id}`;
@@ -66,6 +67,40 @@ export function applyCardEffect(
         ...s1,
         effectPrompt: { kind: "SWAP_TRUMP", actor },
         turnPhase: "EFFECT"
+      };
+    }
+
+    case 8: {
+      // Constraint already validated before apply
+      const order = state.assets.order;
+
+      const byZone = {} as Record<import("@game/shared").ZoneId, PlayerId | null>;
+
+      for (const z of ["Z1", "Z2", "Z3", "Z4", "Z5"] as const) {
+        const c1 = state.layouts.P1[z].card;
+        const c2 = state.layouts.P2[z].card;
+
+        const r = compareZoneCards(order, c1, c2, "P1", "P2");
+        byZone[z] = r.winner;
+
+        // Log détaillé
+        state = pushLog(
+          state,
+          `RoundEnd Z${z} => P1 ${c1.color}:${c1.id} vs P2 ${c2.color}:${c2.id} => ${r.winner ?? "DRAW"} (${r.reason})`
+        );
+      }
+
+      const s1 = pushLog(state, `${actor} played 8 => end round now`);
+      return {
+        ...s1,
+        roundEnded: true,
+        roundEndReason: "CARD_8",
+        roundResolution: { byZone },
+        // Stop everything
+        effectPrompt: null,
+        drawnCard: null,
+        turnPhase: "DRAW",
+        replayPending: false
       };
     }
 

@@ -59,6 +59,10 @@ export interface AssetState {
 
 export type RoundEndReason = "CARD_8" | "DECK_EMPTY" | null;
 
+export type RoundResolution = Readonly<{
+  byZone: Readonly<Record<ZoneId, PlayerId | null>>;
+}>;
+
 export type TurnPhase = "DRAW" | "CHOOSE" | "EFFECT";
 
 export type LogEntry = Readonly<{
@@ -110,7 +114,8 @@ export interface GameState {
   revealed: RevealedCardKeys;
 
   replayPending: boolean;
-
+  roundResolution: RoundResolution | null;
+  
   winner: null | PlayerId;
 }
 

@@ -108,7 +108,8 @@ export function createInitialGameState(): GameState {
     revealed: {},
 
     replayPending: false,
-
+    roundResolution: null,
+    
     winner: null
   };
 }
@@ -133,5 +134,6 @@ export function startNewRound(prev: GameState): GameState {
     revealed: {},
     activePlayer: "P1",
     replayPending: false,
+    roundResolution: null
   };
 }

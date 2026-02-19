@@ -1,4 +1,4 @@
-import type { CardColor, GameState, PlayerId, ZoneId } from "@game/shared";
+import type { CardColor, CardInstance, GameState, PlayerId, ZoneId } from "@game/shared";
 import { ZONE_IDS } from "@game/shared";
 
 export function isZoneId(value: unknown): value is ZoneId {
@@ -146,6 +146,28 @@ export function validateSwapTrump(
   const order = state.assets.order;
   const idx = order.nonTrumps.indexOf(newTrump);
   if (idx < 0) return "INVALID_TRUMP_CHOICE"; // must be one of the 3 nonTrumps
+
+  return null;
+}
+
+export function getPlayedCard(
+  state: GameState,
+  actor: PlayerId,
+  keepDrawn: boolean,
+  zoneId?: ZoneId
+): CardInstance | null {
+  if (keepDrawn) {
+    if (!zoneId) return null;
+    return state.layouts[actor]?.[zoneId]?.card ?? null;
+  }
+  return state.drawnCard ?? null;
+}
+
+export function validateCard8Constraint(state: GameState, played: CardInstance): string | null {
+  if (played.id !== 8) return null;
+
+  // condition => at least 6 cards in discard BEFORE playing 8
+  if (state.deck.discard.length < 6) return "CARD_CONDITION_NOT_MET";
 
   return null;
 }

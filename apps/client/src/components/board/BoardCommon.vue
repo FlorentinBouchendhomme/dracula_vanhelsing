@@ -38,6 +38,15 @@ const isTopRevealed = computed(() => {
   return Boolean(revealed[cardKey(top)]);
 });
 const topCard = computed(() => props.state.deck.draw[0] ?? null);
+
+const canDiscardDrawn = computed(() => {
+  if (!game.canAct()) return false;
+  if (props.state.turnPhase !== "CHOOSE") return false;
+  const c = props.state.drawnCard;
+  if (!c) return false;
+  if (c.id === 8 && props.state.deck.discard.length < 6) return false;
+  return true;
+});
 </script>
 
 <template>

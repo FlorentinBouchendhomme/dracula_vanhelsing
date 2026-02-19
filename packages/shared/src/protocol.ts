@@ -14,6 +14,7 @@ export type ErrorCode =
   | "NOT_READY"
   | "INVALID_ACTION"
   | "STALE_STATE"
+  | "CARD_CONDITION_NOT_MET"
   | "INTERNAL_ERROR";
 
 export interface Envelope<TType extends string, TPayload> {

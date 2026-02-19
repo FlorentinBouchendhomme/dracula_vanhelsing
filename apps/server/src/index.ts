@@ -6,7 +6,7 @@ import type { ClientToServer, GameState, ServerToClient } from "@game/shared";
 
 import { applyServerAction } from "./game/engine";
 import { mapUnknownAction } from "./game/mapper";
-import { validateStateVersion } from "./game/validate";
+import { getPlayedCard, validateCard8Constraint, validateStateVersion } from "./game/validate";
 import { makeError } from "./net/errors";
 import type { SocketSession } from "./net/session";
 import { RoomManager } from "./rooms/manager";
@@ -189,6 +189,20 @@ wss.on("connection", (ws) => {
       if (!mapped) {
         send(ws, makeError("INVALID_ACTION", "Unsupported or invalid action payload", refId));
         return;
+      }
+
+      if (mapped.kind === "RESOLVE_CHOICE") {
+        const played = getPlayedCard(room.state, mapped.playerId, mapped.keepDrawn, mapped.zoneId);
+        if (!played) {
+          send(ws, makeError("INVALID_ACTION", "Cannot determine played card", refId));
+          return;
+        }
+
+        const err8 = validateCard8Constraint(room.state, played);
+        if (err8) {
+          send(ws, makeError(err8 as any, "Cannot play card 8 => discard must be >= 6", refId));
+          return;
+        }
       }
 
       const nextState = applyServerAction(room.state, mapped);
