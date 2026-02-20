@@ -11,6 +11,8 @@ import { makeError } from "./net/errors";
 import type { SocketSession } from "./net/session";
 import { RoomManager } from "./rooms/manager";
 import { redactStateForPlayer } from "./net/redact";
+import { computeRoundResolution } from "./game/round/resolve";
+import { finalizeRound } from "./game/round/finalize";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const wss = new WebSocketServer({
@@ -205,7 +207,21 @@ wss.on("connection", (ws) => {
         }
       }
 
-      const nextState = applyServerAction(room.state, mapped);
+      let nextState = applyServerAction(room.state, mapped);
+
+      // If round ended but resolution missing => compute it
+      if (nextState.roundEnded && !nextState.roundResolution) {
+        nextState = {
+          ...nextState,
+          roundResolution: computeRoundResolution(nextState)
+        };
+      }
+
+      // If round ended and resolution available => finalize now
+      if (nextState.roundEnded && nextState.roundResolution && !nextState.winner) {
+        nextState = finalizeRound(nextState);
+      }
+
       rooms.updateState(room, nextState);
       rooms.broadcastStateSync(room);
 

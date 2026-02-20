@@ -1,5 +1,5 @@
 import type { CardInstance, GameState, PlayerId } from "@game/shared";
-import { compareZoneCards } from "../round/resolve";
+import { compareZoneCards } from "../round/compare";
 
 function cardKey(card: CardInstance): string {
   return `${card.color}:${card.id}`;

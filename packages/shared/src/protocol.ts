@@ -78,6 +78,7 @@ export type UnknownAction =
       kind: "EFFECT_SWAP_TRUMP";
       payload: { actor: PlayerId; newTrump: CardColor };
     }
+  | { kind: "FINALIZE_ROUND"; payload: { actor: PlayerId } }
   | {
       kind: "SET_ACTIVE_PLAYER";
       payload: { playerId: PlayerId };
