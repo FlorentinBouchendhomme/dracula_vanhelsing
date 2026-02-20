@@ -6,10 +6,13 @@ import type { ClientToServer, GameState, ServerToClient } from "@game/shared";
 
 import { applyServerAction } from "./game/engine";
 import { mapUnknownAction } from "./game/mapper";
-import { validatePlayCard, validateStateVersion } from "./game/validate";
+import { getPlayedCard, validateCard8Constraint, validateStateVersion } from "./game/validate";
 import { makeError } from "./net/errors";
 import type { SocketSession } from "./net/session";
 import { RoomManager } from "./rooms/manager";
+import { redactStateForPlayer } from "./net/redact";
+import { computeRoundResolution } from "./game/round/resolve";
+import { finalizeRound } from "./game/round/finalize";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const wss = new WebSocketServer({
@@ -23,8 +26,11 @@ function send(ws: WebSocket, msg: ServerToClient): void {
   ws.send(JSON.stringify(msg));
 }
 
-function syncOne(ws: WebSocket, code: string, state: GameState): void {
-  send(ws, makeServerEnvelope("STATE_SYNC", { code, state }, crypto.randomUUID()));
+function syncOne(ws: WebSocket, session: SocketSession, code: string, state: GameState): void {
+  const safe = session.playerId
+    ? redactStateForPlayer(state, session.playerId)
+    : { ...state, drawnCard: null };
+  send(ws, makeServerEnvelope("STATE_SYNC", { code, state: safe }, crypto.randomUUID()));
 }
 
 wss.on("connection", (ws) => {
@@ -177,7 +183,7 @@ wss.on("connection", (ws) => {
       const versionCheck = validateStateVersion(room.state, msg.payload.stateVersion);
       if (versionCheck === "STALE") {
         send(ws, makeError("STALE_STATE", "Client stateVersion is stale", refId));
-        syncOne(ws, room.code, room.state);
+        syncOne(ws, session, room.code, room.state);
         return;
       }
 
@@ -187,15 +193,35 @@ wss.on("connection", (ws) => {
         return;
       }
 
-      if (mapped.kind === "PLAY_CARD") {
-        const error = validatePlayCard(room.state, mapped.playerId, mapped.zoneId);
-        if (error) {
-          send(ws, makeError(error as any, "Invalid play card action", refId));
+      if (mapped.kind === "RESOLVE_CHOICE") {
+        const played = getPlayedCard(room.state, mapped.playerId, mapped.keepDrawn, mapped.zoneId);
+        if (!played) {
+          send(ws, makeError("INVALID_ACTION", "Cannot determine played card", refId));
+          return;
+        }
+
+        const err8 = validateCard8Constraint(room.state, played);
+        if (err8) {
+          send(ws, makeError(err8 as any, "Cannot play card 8 => discard must be >= 6", refId));
           return;
         }
       }
 
-      const nextState = applyServerAction(room.state, mapped);
+      let nextState = applyServerAction(room.state, mapped);
+
+      // If round ended but resolution missing => compute it
+      if (nextState.roundEnded && !nextState.roundResolution) {
+        nextState = {
+          ...nextState,
+          roundResolution: computeRoundResolution(nextState)
+        };
+      }
+
+      // If round ended and resolution available => finalize now
+      if (nextState.roundEnded && nextState.roundResolution && !nextState.winner) {
+        nextState = finalizeRound(nextState);
+      }
+
       rooms.updateState(room, nextState);
       rooms.broadcastStateSync(room);
 

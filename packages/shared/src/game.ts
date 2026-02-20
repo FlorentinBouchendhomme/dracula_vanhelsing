@@ -99,6 +99,17 @@ export function createInitialGameState(): GameState {
     roundEnded: false,
     roundEndReason: null,
     skipNextTurn: false,
+
+    turnPhase: "DRAW",
+    drawnCard: null,
+
+    log: [],
+    effectPrompt: null,
+    revealed: {},
+
+    replayPending: false,
+    roundResolution: null,
+    
     winner: null
   };
 }
@@ -116,6 +127,13 @@ export function startNewRound(prev: GameState): GameState {
     roundEnded: false,
     roundEndReason: null,
     skipNextTurn: false,
-    activePlayer: "P1"
+    turnPhase: "DRAW",
+    drawnCard: null,
+    log: [],
+    effectPrompt: null,
+    revealed: {},
+    activePlayer: "P1",
+    replayPending: false,
+    roundResolution: null
   };
 }

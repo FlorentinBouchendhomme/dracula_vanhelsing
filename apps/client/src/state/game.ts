@@ -116,6 +116,9 @@ export const useGameStore = defineStore("game", {
     },
 
     selectCardZone(zoneId: import("@game/shared").ZoneId): void {
+      if (!this.state) return;
+      if (this.state.turnPhase !== "CHOOSE") return;
+
       this.selectedCardZoneId = zoneId;
       this.selectedZoneId = zoneId;
     },
@@ -138,17 +141,80 @@ export const useGameStore = defineStore("game", {
       return true;
     },
 
-    confirmPlayCard(): void {
-      if (!this.state || !this.roomCode) return;
-      if (!this.playerId) return;
-      if (!this.selectedCardZoneId) return;
+    drawCard(): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
       if (!this.canAct()) return;
+      if (this.state.turnPhase !== "DRAW") return;
 
       const action: UnknownAction = {
-        kind: "PLAY_CARD",
+        kind: "DRAW_CARD",
+        payload: { actor: this.playerId }
+      };
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        {
+          code: this.roomCode,
+          stateVersion: this.state.version,
+          action
+        },
+        makeId()
+      );
+
+      this.send(msg);
+    },
+
+    resolveChoice(keepDrawn: boolean, zoneId?: import("@game/shared").ZoneId): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
+      if (this.state.turnPhase !== "CHOOSE") return;
+
+      let action: UnknownAction;
+
+      if (keepDrawn) {
+        if (!zoneId) return;
+
+        action = {
+          kind: "RESOLVE_CHOICE",
+          payload: {
+            actor: this.playerId,
+            keepDrawn: true,
+            zoneId
+          }
+        };
+      } else {
+        action = {
+          kind: "RESOLVE_CHOICE",
+          payload: {
+            actor: this.playerId,
+            keepDrawn: false
+          }
+        };
+      }
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        {
+          code: this.roomCode,
+          stateVersion: this.state.version,
+          action
+        },
+        makeId()
+      );
+
+      this.send(msg);
+    },
+
+    revealCard(targetPlayerId: PlayerId, zoneId: import("@game/shared").ZoneId): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
+      if (!this.canAct()) return;
+      if (this.state.turnPhase !== "EFFECT") return;
+
+      const action: UnknownAction = {
+        kind: "EFFECT_REVEAL_CARD",
         payload: {
           actor: this.playerId,
-          zoneId: this.selectedCardZoneId
+          targetPlayerId,
+          zoneId
         }
       };
 
@@ -163,7 +229,69 @@ export const useGameStore = defineStore("game", {
       );
 
       this.send(msg);
-      this.clearSelection();
+    },
+
+    swapOwnPick(step: "PICK_A" | "PICK_B", zoneId: import("@game/shared").ZoneId): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
+      if (!this.canAct()) return;
+      if (this.state.turnPhase !== "EFFECT") return;
+
+      const action: UnknownAction =
+        step === "PICK_A"
+          ? {
+              kind: "EFFECT_SWAP_OWN",
+              payload: { actor: this.playerId, step: "PICK_A", zoneA: zoneId }
+            }
+          : {
+              kind: "EFFECT_SWAP_OWN",
+              payload: { actor: this.playerId, step: "PICK_B", zoneB: zoneId }
+            };
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        { code: this.roomCode, stateVersion: this.state.version, action },
+        makeId()
+      );
+
+      this.send(msg);
+    },
+
+    swapSameZone(zoneId: import("@game/shared").ZoneId): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
+      if (!this.canAct()) return;
+      if (this.state.turnPhase !== "EFFECT") return;
+
+      const action: UnknownAction = {
+        kind: "EFFECT_SWAP_SAME_ZONE",
+        payload: { actor: this.playerId, zoneId }
+      };
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        { code: this.roomCode, stateVersion: this.state.version, action },
+        makeId()
+      );
+
+      this.send(msg);
+    },
+
+    swapTrump(newTrump: import("@game/shared").CardColor): void {
+      if (!this.state || !this.roomCode || !this.playerId) return;
+      if (!this.canAct()) return;
+      if (this.state.turnPhase !== "EFFECT") return;
+
+      const action: UnknownAction = {
+        kind: "EFFECT_SWAP_TRUMP",
+        payload: { actor: this.playerId, newTrump }
+      };
+
+      const msg = makeClientEnvelope(
+        "ACTION",
+        { code: this.roomCode, stateVersion: this.state.version, action },
+        makeId()
+      );
+
+      this.send(msg);
     },
 
     setReady(isReady: boolean): void {

@@ -2,7 +2,15 @@ import type { GameState, PlayerId, ZoneId } from "@game/shared";
 import { GAME_LIMITS } from "@game/shared";
 import { computeWinner } from "./win";
 import { ServerAction } from "./actions";
-import { validatePlayCard } from "./validate";
+import {
+  validateDrawCard,
+  validateEffectRevealCard,
+  validateResolveChoice,
+  validateSwapOwnPick,
+  validateSwapSameZone,
+  validateSwapTrump
+} from "./validate";
+import { applyCardEffect, shouldBeVisibleFromGlobalReveal } from "./cards/effects";
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.trunc(value)));
@@ -21,6 +29,37 @@ function transformInZone(state: GameState, zoneId: ZoneId, amount: number): Game
   return {
     ...state,
     zones: { ...state.zones, [zoneId]: nextZone }
+  };
+}
+
+function endTurnOrReplay(state: GameState, actor: PlayerId): GameState {
+  // If deck is empty => round ends, replay cannot happen
+  if (state.deck.draw.length === 0) {
+    return {
+      ...state,
+      roundEnded: true,
+      roundEndReason: "DECK_EMPTY",
+      replayPending: false,
+      turnPhase: "DRAW"
+    };
+  }
+
+  // Replay => same player plays again
+  if (state.replayPending) {
+    return {
+      ...state,
+      replayPending: false,
+      activePlayer: actor,
+      turnPhase: "DRAW"
+    };
+  }
+
+  // Normal turn switch
+  const nextActive: PlayerId = actor === "P1" ? "P2" : "P1";
+  return {
+    ...state,
+    activePlayer: nextActive,
+    turnPhase: "DRAW"
   };
 }
 
@@ -52,51 +91,265 @@ export function applyServerAction(state: GameState, action: ServerAction): GameS
       break;
     }
 
-    case "PLAY_CARD": {
-      const validationError = validatePlayCard(state, action.playerId, action.zoneId);
-      if (validationError) {
-        return state; // No state change; error already handled earlier if needed
+    case "DRAW_CARD": {
+      const err = validateDrawCard(state, action.playerId);
+      if (err) return state;
+
+      const nextDraw = [...state.deck.draw];
+      const card = nextDraw.shift();
+      if (!card) return state;
+
+      next = {
+        ...state,
+        deck: { ...state.deck, draw: nextDraw },
+        drawnCard: card,
+        turnPhase: "CHOOSE",
+        log: Array.isArray((state as any).log) ? (state as any).log : [],
+        revealed: (state as any).revealed ?? {},
+        effectPrompt: (state as any).effectPrompt ?? null
+      };
+
+      break;
+    }
+
+    case "RESOLVE_CHOICE": {
+      const err = validateResolveChoice(state, action.playerId, action.keepDrawn, action.zoneId);
+      if (err) return state;
+
+      const drawn = state.drawnCard;
+      if (!drawn) return state;
+
+      let nextLayouts = state.layouts;
+      const nextDiscard = [...state.deck.discard];
+
+      let playedCard = drawn;
+
+      if (action.keepDrawn && action.zoneId) {
+        const oldCard = state.layouts[action.playerId][action.zoneId].card;
+        playedCard = oldCard;
+        nextDiscard.push(oldCard);
+
+        const visible = shouldBeVisibleFromGlobalReveal(state, drawn);
+
+        nextLayouts = {
+          ...state.layouts,
+          [action.playerId]: {
+            ...state.layouts[action.playerId],
+            [action.zoneId]: {
+              card: drawn,
+              visibility: visible ? "VISIBLE" : "HIDDEN"
+            }
+          }
+        };
+      } else {
+        // discard drawn (played)
+        nextDiscard.push(drawn);
       }
 
-      const entry = state.layouts[action.playerId][action.zoneId];
-      const playedCard = entry.card;
+      let intermediate: GameState = {
+        ...state,
+        layouts: nextLayouts,
+        deck: { ...state.deck, discard: nextDiscard },
+        drawnCard: null,
+        // default => will be overwritten by effect if prompt
+        turnPhase: "DRAW",
+        effectPrompt: null
+      };
 
-      const nextDiscard = [...state.deck.discard, playedCard];
-      const nextDraw = [...state.deck.draw];
+      // Apply effect (may set prompt + EFFECT phase)
+      intermediate = applyCardEffect(intermediate, action.playerId, playedCard);
 
-      // Draw replacement card if available
-      const replacement = nextDraw.shift();
+      // If effect requires prompt => keep actor as active player and stop here
+      if (intermediate.turnPhase === "EFFECT" && intermediate.effectPrompt) {
+        next = intermediate;
+        break;
+      }
+
+      // Otherwise finish the turn normally
+      next = endTurnOrReplay(intermediate, action.playerId);
+      break;
+    }
+
+    case "EFFECT_REVEAL_CARD": {
+      const err = validateEffectRevealCard(
+        state,
+        action.playerId,
+        action.targetPlayerId,
+        action.zoneId
+      );
+      if (err) return state;
+
+      const entry = state.layouts[action.targetPlayerId][action.zoneId];
+
+      const nextLayouts = {
+        ...state.layouts,
+        [action.targetPlayerId]: {
+          ...state.layouts[action.targetPlayerId],
+          [action.zoneId]: { ...entry, visibility: "VISIBLE" }
+        }
+      };
+
+      const nextLog = [
+        ...state.log,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          text: `${action.playerId} revealed ${action.targetPlayerId}:${action.zoneId}`
+        }
+      ];
+
+      const cleared: GameState = {
+        ...state,
+        layouts: nextLayouts,
+        effectPrompt: null,
+        turnPhase: "DRAW",
+        log: nextLog
+      };
+
+      next = endTurnOrReplay(cleared, action.playerId);
+      break;
+    }
+
+    case "EFFECT_SWAP_OWN": {
+      const err = validateSwapOwnPick(state, action.playerId, action.step, action.zoneId);
+      if (err) return state;
+
+      const prompt = state.effectPrompt;
+      if (!prompt || prompt.kind !== "SWAP_OWN") return state;
+
+      // Step A => store first selection
+      if (action.step === "PICK_A") {
+        next = {
+          ...state,
+          effectPrompt: {
+            kind: "SWAP_OWN",
+            actor: action.playerId,
+            step: "PICK_B",
+            firstZoneId: action.zoneId
+          }
+        };
+        break;
+      }
+
+      // Step B => perform swap (swap full entries => keep visibility)
+      const firstZoneId = prompt.firstZoneId;
+      if (!firstZoneId) return state;
+
+      const a = state.layouts[action.playerId][firstZoneId];
+      const b = state.layouts[action.playerId][action.zoneId];
 
       const nextLayouts = {
         ...state.layouts,
         [action.playerId]: {
           ...state.layouts[action.playerId],
-          [action.zoneId]: replacement ? { card: replacement, visibility: "HIDDEN" } : entry // no replacement if deck empty
+          [firstZoneId]: b,
+          [action.zoneId]: a
         }
       };
 
-      const nextActivePlayer: PlayerId = action.playerId === "P1" ? "P2" : "P1";
+      const nextLog = [
+        ...state.log,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          text: `${action.playerId} swapped own ${firstZoneId} <-> ${action.zoneId}`
+        }
+      ];
 
-      let nextState = {
+      const cleared: GameState = {
         ...state,
         layouts: nextLayouts,
-        deck: {
-          draw: nextDraw,
-          discard: nextDiscard
-        },
-        activePlayer: nextActivePlayer
+        effectPrompt: null,
+        turnPhase: "DRAW",
+        log: nextLog
       };
 
-      // End of round if deck empty AFTER turn
-      if (nextDraw.length === 0) {
-        nextState = {
-          ...nextState,
-          roundEnded: true,
-          roundEndReason: "DECK_EMPTY"
-        };
-      }
+      next = endTurnOrReplay(cleared, action.playerId);
+      break;
+    }
 
-      next = nextState;
+    case "EFFECT_SWAP_SAME_ZONE": {
+      const err = validateSwapSameZone(state, action.playerId, action.zoneId);
+      if (err) return state;
+
+      const opp: PlayerId = action.playerId === "P1" ? "P2" : "P1";
+
+      const a = state.layouts[action.playerId][action.zoneId];
+      const b = state.layouts[opp][action.zoneId];
+
+      const nextLayouts = {
+        ...state.layouts,
+        [action.playerId]: {
+          ...state.layouts[action.playerId],
+          [action.zoneId]: b
+        },
+        [opp]: {
+          ...state.layouts[opp],
+          [action.zoneId]: a
+        }
+      };
+
+      const nextLog = [
+        ...state.log,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          text: `${action.playerId} swapped with ${opp} at ${action.zoneId}`
+        }
+      ];
+
+      const cleared: GameState = {
+        ...state,
+        layouts: nextLayouts,
+        effectPrompt: null,
+        turnPhase: "DRAW",
+        log: nextLog
+      };
+
+      next = endTurnOrReplay(cleared, action.playerId);
+      break;
+    }
+
+    case "EFFECT_SWAP_TRUMP": {
+      const err = validateSwapTrump(state, action.playerId, action.newTrump);
+      if (err) return state;
+
+      const order = state.assets.order;
+      const idx = order.nonTrumps.indexOf(action.newTrump);
+      if (idx < 0) return state;
+
+      const oldTrump = order.trump;
+
+      const nextNonTrumps = [...order.nonTrumps] as [
+        (typeof order.nonTrumps)[number],
+        (typeof order.nonTrumps)[number],
+        (typeof order.nonTrumps)[number]
+      ];
+      nextNonTrumps[idx] = oldTrump;
+
+      const nextOrder = {
+        nonTrumps: nextNonTrumps,
+        trump: action.newTrump
+      };
+
+      const nextLog = [
+        ...state.log,
+        {
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+          text: `${action.playerId} swapped trump => ${oldTrump} <-> ${action.newTrump}`
+        }
+      ];
+
+      const cleared: GameState = {
+        ...state,
+        assets: { ...state.assets, order: nextOrder },
+        effectPrompt: null,
+        turnPhase: "DRAW",
+        log: nextLog
+      };
+
+      next = endTurnOrReplay(cleared, action.playerId);
       break;
     }
 

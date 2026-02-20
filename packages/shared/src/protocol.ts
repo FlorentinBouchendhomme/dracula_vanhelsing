@@ -1,4 +1,4 @@
-import type { GameState, PlayerId, RoomCode, RoomSummary, ZoneId } from "./types";
+import type { CardColor, GameState, PlayerId, RoomCode, RoomSummary, ZoneId } from "./types";
 
 export type ClientMsgId = string;
 export type ServerMsgId = string;
@@ -14,6 +14,7 @@ export type ErrorCode =
   | "NOT_READY"
   | "INVALID_ACTION"
   | "STALE_STATE"
+  | "CARD_CONDITION_NOT_MET"
   | "INTERNAL_ERROR";
 
 export interface Envelope<TType extends string, TPayload> {
@@ -32,8 +33,16 @@ export interface ErrorPayload {
 
 export type UnknownAction =
   | {
-      kind: "PLAY_CARD";
-      payload: { actor: PlayerId; zoneId: ZoneId };
+      kind: "DRAW_CARD";
+      payload: { actor: PlayerId };
+    }
+  | {
+      kind: "RESOLVE_CHOICE";
+      payload: {
+        actor: PlayerId;
+        keepDrawn: boolean;
+        zoneId?: ZoneId;
+      };
     }
   | {
       kind: "END_ROUND";
@@ -47,6 +56,29 @@ export type UnknownAction =
       kind: "TRANSFORM_IN_ZONE";
       payload: { zoneId: ZoneId; amount: number };
     }
+  | {
+      kind: "EFFECT_REVEAL_CARD";
+      payload: {
+        actor: PlayerId;
+        targetPlayerId: PlayerId;
+        zoneId: ZoneId;
+      };
+    }
+  | {
+      kind: "EFFECT_SWAP_OWN";
+      payload:
+        | { actor: PlayerId; step: "PICK_A"; zoneA: ZoneId }
+        | { actor: PlayerId; step: "PICK_B"; zoneB: ZoneId };
+    }
+  | {
+      kind: "EFFECT_SWAP_SAME_ZONE";
+      payload: { actor: PlayerId; zoneId: ZoneId };
+    }
+  | {
+      kind: "EFFECT_SWAP_TRUMP";
+      payload: { actor: PlayerId; newTrump: CardColor };
+    }
+  | { kind: "FINALIZE_ROUND"; payload: { actor: PlayerId } }
   | {
       kind: "SET_ACTIVE_PLAYER";
       payload: { playerId: PlayerId };

@@ -4,19 +4,44 @@ import { isPlayerId, isZoneId } from "./validate";
 
 export function mapUnknownAction(action: UnknownAction): ServerAction | null {
   switch (action.kind) {
-    case "PLAY_CARD": {
+    case "DRAW_CARD": {
       const payload = action.payload;
-
       if (!payload) return null;
 
-      const { actor, zoneId } = payload;
-
-      if (!isPlayerId(actor) || !isZoneId(zoneId)) return null;
+      if (!isPlayerId(payload.actor)) return null;
 
       return {
-        kind: "PLAY_CARD",
+        kind: "DRAW_CARD",
+        playerId: payload.actor
+      };
+    }
+
+    case "RESOLVE_CHOICE": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const actor = payload.actor;
+      const keepDrawn = payload.keepDrawn;
+
+      if (!isPlayerId(actor)) return null;
+      if (typeof keepDrawn !== "boolean") return null;
+
+      if (keepDrawn) {
+        const zoneId = payload.zoneId;
+        if (!isZoneId(zoneId)) return null;
+
+        return {
+          kind: "RESOLVE_CHOICE",
+          playerId: actor,
+          keepDrawn: true,
+          zoneId
+        };
+      }
+
+      return {
+        kind: "RESOLVE_CHOICE",
         playerId: actor,
-        zoneId
+        keepDrawn: false
       };
     }
 
@@ -43,6 +68,76 @@ export function mapUnknownAction(action: UnknownAction): ServerAction | null {
       const playerId = typeof payload?.playerId === "string" ? payload.playerId : null;
       if (!isPlayerId(playerId)) return null;
       return { kind: "SET_ACTIVE_PLAYER", playerId };
+    }
+
+    case "EFFECT_REVEAL_CARD": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const { actor, targetPlayerId, zoneId } = payload;
+
+      if (!isPlayerId(actor)) return null;
+      if (!isPlayerId(targetPlayerId)) return null;
+      if (!isZoneId(zoneId)) return null;
+
+      return {
+        kind: "EFFECT_REVEAL_CARD",
+        playerId: actor,
+        targetPlayerId,
+        zoneId
+      };
+    }
+
+    case "EFFECT_SWAP_OWN": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const actor = payload.actor;
+      const step = (payload as any).step;
+
+      if (!isPlayerId(actor)) return null;
+      if (step !== "PICK_A" && step !== "PICK_B") return null;
+
+      const zoneId = step === "PICK_A" ? (payload as any).zoneA : (payload as any).zoneB;
+      if (!isZoneId(zoneId)) return null;
+
+      return { kind: "EFFECT_SWAP_OWN", playerId: actor, step, zoneId };
+    }
+
+    case "EFFECT_SWAP_SAME_ZONE": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const actor = payload.actor;
+      const zoneId = payload.zoneId;
+
+      if (!isPlayerId(actor)) return null;
+      if (!isZoneId(zoneId)) return null;
+
+      return { kind: "EFFECT_SWAP_SAME_ZONE", playerId: actor, zoneId };
+    }
+
+    case "EFFECT_SWAP_TRUMP": {
+      const payload = action.payload;
+      if (!payload) return null;
+
+      const actor = payload.actor;
+      const newTrump = payload.newTrump;
+
+      if (!isPlayerId(actor)) return null;
+      if (
+        newTrump !== "GREEN" &&
+        newTrump !== "YELLOW" &&
+        newTrump !== "RED" &&
+        newTrump !== "BLUE"
+      )
+        return null;
+
+      return {
+        kind: "EFFECT_SWAP_TRUMP",
+        playerId: actor,
+        newTrump
+      };
     }
 
     default:

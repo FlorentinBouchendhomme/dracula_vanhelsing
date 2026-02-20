@@ -15,6 +15,8 @@ export type CardInstance = Readonly<{
 
 export type CardVisibility = "HIDDEN" | "VISIBLE";
 
+export type RevealedCardKeys = Readonly<Record<string, true>>;
+
 export type RoundCounter = 1 | 2 | 3 | 4 | 5;
 
 export type RoomCode = string;
@@ -57,6 +59,33 @@ export interface AssetState {
 
 export type RoundEndReason = "CARD_8" | "DECK_EMPTY" | null;
 
+export type RoundResolution = Readonly<{
+  byZone: Readonly<Record<ZoneId, PlayerId | null>>;
+}>;
+
+export type TurnPhase = "DRAW" | "CHOOSE" | "EFFECT";
+
+export type LogEntry = Readonly<{
+  id: string;
+  ts: number;
+  text: string;
+}>;
+
+export type EffectPrompt =
+  | null
+  | Readonly<{
+      kind: "REVEAL_OWN" | "REVEAL_OPP";
+      actor: PlayerId;
+    }>
+  | Readonly<{
+      kind: "SWAP_OWN";
+      actor: PlayerId;
+      step: "PICK_A" | "PICK_B";
+      firstZoneId?: ZoneId;
+    }>
+  | Readonly<{ kind: "SWAP_SAME_ZONE"; actor: PlayerId }>
+  | Readonly<{ kind: "SWAP_TRUMP"; actor: PlayerId }>;
+
 export interface GameState {
   version: number;
   round: RoundCounter;
@@ -75,8 +104,18 @@ export interface GameState {
   roundEndReason: RoundEndReason;
   skipNextTurn: boolean; // used by card 8
 
+  turnPhase: TurnPhase;
+  drawnCard: CardInstance | null;
+
   roles: RolesByPlayer;
 
+  log: readonly LogEntry[];
+  effectPrompt: EffectPrompt;
+  revealed: RevealedCardKeys;
+
+  replayPending: boolean;
+  roundResolution: RoundResolution | null;
+  
   winner: null | PlayerId;
 }
 
